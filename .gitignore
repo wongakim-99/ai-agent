@@ -1,0 +1,16 @@
+# Python venv
+.venv/
+__pycache__/
+*.pyc
+
+# 실습 중 자동 생성되는 로컬 데이터 (ensure_demo_data)
+disease.db
+disease_info.csv
+
+# 로컬 환경변수 / 키
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+.serena/
