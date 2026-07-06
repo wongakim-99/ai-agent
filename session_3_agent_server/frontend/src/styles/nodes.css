@@ -1,0 +1,102 @@
+/* 커스텀 노드 스타일: 종류별 색 + 상태(idle/running/done)별 강조 */
+
+.gnode {
+  width: 172px;
+  height: 54px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  position: relative;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease,
+    transform 0.18s ease, background 0.18s ease;
+}
+
+.gnode__label {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 종류별 좌측 컬러 바 */
+.gnode--start,
+.gnode--end {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: var(--bg-soft);
+  color: var(--text-dim);
+}
+.gnode--node { border-left: 4px solid var(--accent); }
+.gnode--prompt { border-left: 4px solid #46b7a6; }
+.gnode--llm { border-left: 4px solid #7c6bef; }
+.gnode--parser { border-left: 4px solid #d98613; }
+.gnode--branch { border-left: 4px solid var(--accent); }
+
+/* 상태 */
+.gnode--running {
+  border-color: var(--run);
+  box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.25), 0 0 20px rgba(245, 165, 36, 0.35);
+  animation: pulse 1s ease-in-out infinite;
+}
+.gnode--done {
+  border-color: var(--done);
+  box-shadow: 0 0 0 2px rgba(53, 194, 107, 0.3);
+}
+.gnode--dimmed {
+  opacity: 0.32;
+  filter: grayscale(0.5);
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+
+/* running 스피너 (우상단 점) */
+.gnode__spinner {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--run);
+  border-top-color: transparent;
+  animation: spin 0.7s linear infinite;
+  background: var(--bg);
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* React Flow 핸들 (연결점) 은 살짝만 보이게 */
+.react-flow__handle {
+  width: 6px;
+  height: 6px;
+  background: var(--text-dim);
+  border: none;
+}
+
+/* ---- 엣지 상태 ---- */
+.react-flow__edge.edge--idle .react-flow__edge-path { stroke: var(--border); stroke-width: 1.5; }
+.react-flow__edge.edge--taken .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+.react-flow__edge.edge--dimmed .react-flow__edge-path {
+  stroke: var(--border);
+  stroke-width: 1.5;
+  opacity: 0.3;
+  stroke-dasharray: 4 4;
+}
+.react-flow__edge-text { fill: var(--text-dim); font-size: 11px; }
+.react-flow__edge.edge--dimmed .react-flow__edge-text { opacity: 0.3; }
+.react-flow__arrowhead { fill: var(--border); }

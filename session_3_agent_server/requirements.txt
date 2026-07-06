@@ -1,0 +1,9 @@
+# session_3_agent_server 백엔드 의존성 (ai-agent 레포 최초 매니페스트)
+# 버전은 기존 .venv 에 설치된 것과 일치시켜 고정한다.
+fastapi==0.139.0
+uvicorn[standard]==0.49.0
+langgraph==1.2.7
+langchain-core==1.4.8
+langchain-openai==1.3.3
+python-dotenv==1.2.2
+pydantic==2.13.4

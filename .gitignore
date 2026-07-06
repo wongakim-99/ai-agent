@@ -14,3 +14,8 @@ disease_info.csv
 .ipynb_checkpoints/
 
 .serena/
+
+# Node / 프론트엔드 (session_3_agent_server/frontend)
+node_modules/
+dist/
+.vite/
