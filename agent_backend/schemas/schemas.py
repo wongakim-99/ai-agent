@@ -42,3 +42,30 @@ class GraphTopology(BaseModel):
 # ---- 실행 요청 ----
 class RunIn(BaseModel):
     input: dict = {"question": "감기 걸렸을 때 어떻게 해야 해?", "context": "", "answer": ""}
+
+
+# ---- 세션 2 REST (구 session_2_agent_server 이관) ----
+class TopicIn(BaseModel):
+    topic: str = "LangGraph"
+
+
+class QuestionIn(BaseModel):
+    question: str = "Tool과 Agent의 차이를 알려줘"
+
+
+class ReviewIn(BaseModel):
+    review: str = "배송도 빠르고 품질도 좋아서 만족합니다."
+
+
+class TextIn(BaseModel):
+    text: str = "LangGraph는 State를 중심으로 노드와 엣지를 연결해 에이전트 워크플로우를 구성한다."
+
+
+class TextResult(BaseModel):
+    """단순 문자열 결과 (2-2 explain, 2-3 chat)."""
+    result: str
+
+
+class DictResult(BaseModel):
+    """구조화된 dict 결과 (2-4 sentiment, 2-5 analyze)."""
+    result: dict

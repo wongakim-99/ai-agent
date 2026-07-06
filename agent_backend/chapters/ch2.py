@@ -12,8 +12,8 @@ from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from langchain_core.runnables import RunnableParallel
 
-from session_3_agent_server.common.llm import get_llm
-from session_3_agent_server.common.registry import GraphSpec, register
+from agent_backend.common.llm import get_llm
+from agent_backend.common.registry import GraphSpec, register
 
 
 # --- 2-1. LLM 직접 호출 (단일 노드) ---

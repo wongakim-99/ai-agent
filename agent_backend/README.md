@@ -1,25 +1,38 @@
-# session_3_agent_server — LangGraph/LCEL 토폴로지 실행 뷰어
+# agent_backend — 통합 학습 백엔드
 
-노트북 **챕터 2(LCEL)·챕터 3(LangGraph 3패턴)** 에서 배운 그래프를 **토폴로지로 그리고, 실행을 실시간 애니메이션**으로 보여주는 풀스택 학습 앱.
+노트북에서 **챕터별로 배운 것들을 전부 한 패키지에 모은** FastAPI 서버.
+프론트는 레포 최상위의 [`agent_frontend/`](../agent_frontend/) 와 연동된다.
 
-- 노드가 순서대로 **점등**된다.
-- 조건분기는 **선택된 길만 밝고 안 간 길은 흐려진다(dim).**
-- 병렬은 **두 노드가 동시에** 켜진다.
-- 오른쪽 패널에 **State가 실시간으로 채워진다** (3-3의 `operator.add` reducer로 `notes`가 이어 붙는 것까지 눈으로 확인).
+| 출처 | 기능 | 엔드포인트 |
+|------|------|-----------|
+| 세션 2 | LCEL 체인을 REST API로 | `POST /explain` `/chat` `/sentiment` `/analyze` |
+| 세션 3 | 그래프 **토폴로지 시각화 + 실행 스트리밍** | `GET /graphs`, `GET /graphs/{id}/topology`, `POST /graphs/{id}/run`(SSE) |
 
-> 왜? "LangGraph = State + 노드 + 엣지"를 눈으로 체감하고, 나중에 라우터를 LLM으로 바꿔 L3 에이전트로 넘어가는 다리로 삼기 위해.
+토폴로지 뷰어에서는:
+- 노드가 실행 순서대로 **점등**되고,
+- 조건분기는 **선택된 길만 밝고 안 간 길은 흐려지고(dim)**,
+- 병렬은 **두 노드가 동시에** 켜지고,
+- State가 **실시간으로** 채워진다 (3-3 `operator.add` reducer 병합까지 눈으로 확인).
+
+> 왜? "LangGraph = State + 노드 + 엣지"를 눈으로 체감하고, 이후 라우터를 LLM으로 바꿔 L3 에이전트로 넘어가는 다리로 삼기 위해.
 
 ## 구조
 
 ```
-session_3_agent_server/
-  main.py            FastAPI 앱 (CORS + http 로깅 + 라우터 등록)
-  api/               health.py, graphs.py(목록/토폴로지/실행SSE)
+agent_backend/
+  main.py            FastAPI 앱 (CORS + http 로깅 + health/llm/graphs 라우터)
+  api/
+    health.py        GET /health
+    llm.py           세션 2 REST (chapters/ch2.py 빌더 재사용)
+    graphs.py        목록/토폴로지/실행SSE
   common/            registry.py, topology.py, streaming.py, llm.py, logging_config.py
-  chapters/          ch2.py(LCEL 2-1~2-5), ch3.py(LangGraph 3-1~3-3)   ← ch4.py 추가만 하면 확장
+  chapters/          ★ 챕터별 정리의 중심
+    ch2.py           LCEL 2-1~2-5
+    ch3.py           LangGraph 3-1~3-3        ← ch4.py 추가만 하면 확장
   schemas/           schemas.py
-  frontend/          React + Vite + React Flow(@xyflow/react) + dagre
   requirements.txt
+
+agent_frontend/      React + Vite + React Flow(@xyflow/react) + dagre  (레포 최상위)
 ```
 
 핵심: 백엔드가 `graph.get_graph()`로 토폴로지를, `astream_events(v2)`로 실행 이벤트를 뽑아
@@ -32,15 +45,15 @@ session_3_agent_server/
 
 ```bash
 # 의존성은 대부분 기존 .venv에 이미 설치돼 있음. 필요 시:
-#   .venv/bin/pip install -r session_3_agent_server/requirements.txt
-.venv/bin/uvicorn session_3_agent_server.main:app --reload
+#   .venv/bin/pip install -r agent_backend/requirements.txt
+.venv/bin/uvicorn agent_backend.main:app --reload
 #  → http://127.0.0.1:8000/docs
 ```
 
 **2) 프론트엔드**
 
 ```bash
-cd session_3_agent_server/frontend
+cd agent_frontend
 npm install      # 최초 1회
 npm run dev
 #  → http://localhost:5173   (백엔드 8000으로 프록시)
@@ -51,12 +64,17 @@ npm run dev
 ## API (curl)
 
 ```bash
+# 세션 3 — 토폴로지/실행
 curl -s localhost:8000/graphs | jq                    # 등록된 그래프 목록
 curl -s localhost:8000/graphs/3-2/topology | jq       # 정규화된 노드/엣지
-# 실행(SSE 스트림):
 curl -N -X POST localhost:8000/graphs/3-2/run \
   -H 'Content-Type: application/json' \
-  -d '{"input":{"disease":"고혈압","info":"","answer":""}}'
+  -d '{"input":{"disease":"고혈압","info":"","answer":""}}'   # SSE 스트림
+
+# 세션 2 — LCEL REST
+curl -s -X POST localhost:8000/explain -H 'Content-Type: application/json' -d '{"topic":"LangGraph"}'
+curl -s -X POST localhost:8000/analyze -H 'Content-Type: application/json' \
+  -d '{"text":"LangGraph는 State를 중심으로 노드와 엣지를 연결한다."}'
 ```
 
 SSE 이벤트: `run_start → node_start / edge_taken / node_end / state (반복) → done`

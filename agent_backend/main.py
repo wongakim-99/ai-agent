@@ -1,13 +1,18 @@
 """
-FastAPI 진입점: 앱을 만들고 라우터를 등록한다. (session_2 관례 + CORS/스트리밍 확장)
+FastAPI 진입점: 앱을 만들고 라우터를 등록한다.
+
+통합 백엔드: 챕터별 학습 결과물이 전부 여기에 모인다.
+  - api/llm.py    : 세션 2 — LCEL 체인을 REST API 로 (/explain /chat /sentiment /analyze)
+  - api/graphs.py : 세션 3 — 그래프 토폴로지 + 실행 SSE (/graphs...)
+  - chapters/     : 챕터별 그래프/체인 정의 (ch2, ch3, 이후 ch4...)
 
 실행 (레포 루트에서):
-    uvicorn session_3_agent_server.main:app --reload
+    uvicorn agent_backend.main:app --reload
 
 문서:
     http://127.0.0.1:8000/docs
 프론트엔드(dev):
-    cd session_3_agent_server/frontend && npm run dev   # http://localhost:5173
+    cd agent_frontend && npm run dev   # http://localhost:5173
 """
 from dotenv import load_dotenv
 load_dotenv()  # 레포 루트 .env 의 OPENAI_API_KEY 를 chapters import 전에 읽는다.
@@ -17,16 +22,20 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from session_3_agent_server.common.logging_config import setup_logging, get_logger
-from session_3_agent_server.api import health, graphs
+from agent_backend.common.logging_config import setup_logging, get_logger
+from agent_backend.api import health, llm, graphs
 
 setup_logging()
 logger = get_logger("app")
 
 app = FastAPI(
-    title="LangGraph 토폴로지 실행 뷰어",
-    description="노트북 챕터 2(LCEL)·3(LangGraph)의 그래프를 토폴로지로 그리고 실행을 애니메이션한다.",
-    version="0.1.0",
+    title="Agent Backend — 통합 학습 서버",
+    description=(
+        "노트북에서 배운 것들을 챕터별로 모은 백엔드. "
+        "세션 2: LCEL 체인 REST API(/explain 등), "
+        "세션 3: 그래프 토폴로지 시각화 + 실행 스트리밍(/graphs)."
+    ),
+    version="0.2.0",
 )
 
 # 프론트(Vite dev, 5173)에서 백엔드(8000)로 직접 호출할 때를 위한 CORS.
@@ -53,4 +62,5 @@ async def log_requests(request: Request, call_next):
 
 
 app.include_router(health.router)
+app.include_router(llm.router)
 app.include_router(graphs.router)

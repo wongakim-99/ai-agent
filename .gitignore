@@ -15,7 +15,7 @@ disease_info.csv
 
 .serena/
 
-# Node / 프론트엔드 (session_3_agent_server/frontend)
+# Node / 프론트엔드 (agent_frontend)
 node_modules/
 dist/
 .vite/

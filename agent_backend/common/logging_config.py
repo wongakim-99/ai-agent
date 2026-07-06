@@ -1,6 +1,6 @@
 """
 앱 전역 로깅 설정. main.py 에서 앱을 만들기 전에 setup_logging() 을 한 번 호출한다.
-다른 모듈에서는 get_logger(__name__) 로 로거를 받아 쓴다. (session_2 와 동일)
+다른 모듈에서는 get_logger(__name__) 로 로거를 받아 쓴다.
 """
 import logging
 import sys

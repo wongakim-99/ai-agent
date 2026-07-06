@@ -10,7 +10,7 @@ from typing import Annotated
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START, END
 
-from session_3_agent_server.common.registry import GraphSpec, register
+from agent_backend.common.registry import GraphSpec, register
 
 
 # =========================================================

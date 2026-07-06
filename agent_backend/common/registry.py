@@ -60,4 +60,4 @@ def get_spec(graph_id: str) -> GraphSpec:
 
 # 아래 import 가 각 챕터 모듈을 로드하며 register() 를 실행해 REGISTRY 를 채운다.
 # (GraphSpec/register 가 위에 이미 정의돼 있어 순환 import 문제 없음)
-from session_3_agent_server.chapters import ch2, ch3  # noqa: E402,F401
+from agent_backend.chapters import ch2, ch3  # noqa: E402,F401

@@ -9,11 +9,11 @@ import json
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
-from session_3_agent_server.schemas import schemas
-from session_3_agent_server.common.logging_config import get_logger
-from session_3_agent_server.common.registry import list_specs, get_spec
-from session_3_agent_server.common.topology import build_topology
-from session_3_agent_server.common.streaming import run_events
+from agent_backend.schemas import schemas
+from agent_backend.common.logging_config import get_logger
+from agent_backend.common.registry import list_specs, get_spec
+from agent_backend.common.topology import build_topology
+from agent_backend.common.streaming import run_events
 
 router = APIRouter(tags=["graphs"])
 logger = get_logger(__name__)
