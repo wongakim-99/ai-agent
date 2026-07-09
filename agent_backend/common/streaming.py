@@ -52,6 +52,17 @@ async def _run_langgraph(spec, input_state: dict) -> AsyncIterator[dict]:
     reducers = spec.state_reducers
     state: dict[str, Any] = dict(input_state)
 
+    # superstep 레이어 추적 — 실제로 "탄" 엣지만 강조하기 위함.
+    # LangGraph 는 BSP(superstep) 단위로 노드를 실행한다. 한 노드가 시작될 때,
+    # "직전 superstep 에서 실제로 끝난 노드(prev_layer)" → 이 노드로 가는 엣지만이
+    # 진짜 탄 엣지다. 그래서 incoming 을 전부 강조하지 않고 prev_layer 로 필터한다.
+    #  · 조건부 fan-out(entry→db,csv): 두 노드가 같은 superstep → 둘 다 강조 ✓
+    #  · 경로 의존 fan-in(reporter): 실제 실행된 선행자에서 온 엣지만 강조 ✓
+    #    (예: web→reporter 는 web 이 rag 로 갔으면 강조되지 않음)
+    prev_layer: set[str] = {"__start__"}
+    cur_layer: set[str] = set()
+    in_flight = 0
+
     yield {"type": "run_start", "graph_id": spec.id}
 
     async for ev in graph.astream_events(input_state, version="v2"):
@@ -73,12 +84,21 @@ async def _run_langgraph(spec, input_state: dict) -> AsyncIterator[dict]:
             continue
 
         if etype == "on_chain_start":
+            # in_flight 가 0 인데 이전 layer 가 있으면 새 superstep 시작 → layer 회전
+            if in_flight == 0 and cur_layer:
+                prev_layer = cur_layer
+                cur_layer = set()
+            cur_layer.add(name)
+            in_flight += 1
+            # prev_layer(실제 실행된 직전 노드) 에서 온 엣지만 "탄" 것으로 강조
             for e in incoming.get(name, []):
-                yield {"type": "edge_taken", "source": e["source"], "target": e["target"],
-                       "conditional": e["conditional"], "condition_label": e["condition_label"]}
+                if e["source"] in prev_layer:
+                    yield {"type": "edge_taken", "source": e["source"], "target": e["target"],
+                           "conditional": e["conditional"], "condition_label": e["condition_label"]}
             yield {"type": "node_start", "node": name}
 
         elif etype == "on_chain_end":
+            in_flight -= 1
             delta = ev.get("data", {}).get("output")
             if not isinstance(delta, dict):
                 delta = {}

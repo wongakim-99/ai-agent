@@ -92,8 +92,13 @@ SSE 이벤트: `run_start → node_start / edge_taken / node_end / state (반복
 | 3-1 | 3 | LangGraph | 직렬 retrieve → generate |
 | 3-2 | 3 | LangGraph | 조건분기 lookup → (answer \| fallback) |
 | 3-3 | 3 | LangGraph | 병렬 fan-out 후 합류 (notes reducer) |
+| 4-1 | 4 | LangGraph | 로컬 우선 MAS: entry 라우팅 → DB·CSV 병렬 / web→RAG fallback → reporter 합류 |
 
-## 챕터 4 확장 (나중에)
+## 챕터 4 확장
 
-`chapters/ch4.py`를 만들어 MAS 그래프 빌더 + `GraphSpec`을 `register()` 하고,
-`common/registry.py` 맨 아래 import에 `ch4`만 추가하면 끝. 엔드포인트/정규화/스트리밍은 무수정.
+`chapters/ch4.py`가 MAS 그래프 빌더 + `GraphSpec`을 `register()` 하고,
+`common/registry.py` 맨 아래 import에 `ch4`를 추가해 배선한다. 엔드포인트/정규화/스트리밍은 무수정.
+
+역할별 노드 색을 위해 `GraphSpec.node_types`(노드 id → router/agent/fallback/reporter)를 선언하면
+`common/topology.py`가 그 타입을 방출하고 프론트가 `gnode--{type}` 클래스로 색을 입힌다.
+경로 의존 fan-in을 정확히 강조하기 위해 `common/streaming.py`는 superstep 레이어로 "탄" 엣지만 표시한다.

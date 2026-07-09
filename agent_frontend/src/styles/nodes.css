@@ -40,6 +40,12 @@
 .gnode--parser { border-left: 4px solid #d98613; }
 .gnode--branch { border-left: 4px solid var(--accent); }
 
+/* 챕터4 MAS 역할별 색 (GraphSpec.node_types → topology type → 아래 클래스) */
+.gnode--router { border-left: 4px solid #c678dd; }    /* 라우터: 길을 가르는 결정점 */
+.gnode--agent { border-left: 4px solid #33a1c9; }     /* 에이전트: db/csv/rag 조회 일꾼 */
+.gnode--fallback { border-left: 4px solid #8a94a6; }  /* fallback: web 스텁(의도적으로 흐린 톤) */
+.gnode--reporter { border-left: 4px solid #e0983a; }  /* 합류: 최종 리포트 종착점 */
+
 /* 상태 */
 .gnode--running {
   border-color: var(--run);

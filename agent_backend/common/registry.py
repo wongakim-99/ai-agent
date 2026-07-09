@@ -38,6 +38,9 @@ class GraphSpec:
     # --- LangGraph 전용 ---
     # 병렬로 같은 key 를 쓰는 노드가 있으면 reducer 를 선언한다. 예: {"notes": "append"}
     state_reducers: dict[str, str] = field(default_factory=dict)
+    # 노드 id → 역할 타입(router/agent/fallback/reporter …). 프론트 색상용.
+    # 미지정 노드는 topology 에서 기본 "node" 로 폴백된다(완전 opt-in).
+    node_types: dict[str, str] = field(default_factory=dict)
 
 
 REGISTRY: dict[str, GraphSpec] = {}
@@ -60,4 +63,4 @@ def get_spec(graph_id: str) -> GraphSpec:
 
 # 아래 import 가 각 챕터 모듈을 로드하며 register() 를 실행해 REGISTRY 를 채운다.
 # (GraphSpec/register 가 위에 이미 정의돼 있어 순환 import 문제 없음)
-from agent_backend.chapters import ch2, ch3  # noqa: E402,F401
+from agent_backend.chapters import ch2, ch3, ch4  # noqa: E402,F401

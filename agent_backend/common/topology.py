@@ -36,7 +36,10 @@ def _from_langgraph(spec) -> tuple[list[dict], list[dict]]:
         elif nid == "__end__":
             nodes.append(_node(nid, "END", "end"))
         else:
-            nodes.append(_node(nid, n.name, "node", nid in conditional_targets))
+            # spec.node_types 에 역할이 지정돼 있으면 그 타입(router/agent/…)으로,
+            # 없으면 기본 "node" 로 방출한다(완전 opt-in, 기존 챕터 무영향).
+            ntype = spec.node_types.get(nid, "node")
+            nodes.append(_node(nid, n.name, ntype, nid in conditional_targets))
 
     edges = []
     for e in g.edges:

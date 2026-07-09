@@ -42,7 +42,7 @@ export default function App() {
       <header className="app__header">
         <div className="app__title">
           <span className="app__logo">◈</span> LangGraph 토폴로지 실행 뷰어
-          <span className="app__sub">챕터 2 · 3 · 배운 그래프를 눈으로</span>
+          <span className="app__sub">챕터 2 · 3 · 4 · 배운 그래프를 눈으로</span>
         </div>
         <ChapterSelector graphs={graphs} selectedId={selectedId} onSelect={setSelectedId} />
       </header>
