@@ -23,6 +23,7 @@ class NodeOut(BaseModel):
     label: str
     type: str                    # "start" | "end" | "node" | "prompt" | "llm" | "parser" | "branch"
     is_conditional_target: bool
+    doc: str | None = None       # 교육용 노드 해설 (opt-in)
 
 
 class EdgeOut(BaseModel):
@@ -30,6 +31,7 @@ class EdgeOut(BaseModel):
     target: str
     conditional: bool
     condition_label: str | None
+    doc: str | None = None       # 교육용 분기/전이 해설 ("{state.키}" 치환 대상)
 
 
 class GraphTopology(BaseModel):

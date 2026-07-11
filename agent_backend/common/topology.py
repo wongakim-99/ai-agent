@@ -13,12 +13,16 @@ from __future__ import annotations
 from typing import Any
 
 
-def _node(nid: str, label: str, ntype: str, cond_target: bool = False) -> dict:
-    return {"id": nid, "label": label, "type": ntype, "is_conditional_target": cond_target}
+def _node(nid: str, label: str, ntype: str, cond_target: bool = False,
+          doc: str | None = None) -> dict:
+    return {"id": nid, "label": label, "type": ntype,
+            "is_conditional_target": cond_target, "doc": doc}
 
 
-def _edge(src: str, tgt: str, conditional: bool = False, label: str | None = None) -> dict:
-    return {"source": src, "target": tgt, "conditional": conditional, "condition_label": label}
+def _edge(src: str, tgt: str, conditional: bool = False, label: str | None = None,
+          doc: str | None = None) -> dict:
+    return {"source": src, "target": tgt, "conditional": conditional,
+            "condition_label": label, "doc": doc}
 
 
 # ---------------------------------------------------------
@@ -39,13 +43,18 @@ def _from_langgraph(spec) -> tuple[list[dict], list[dict]]:
             # spec.node_types 에 역할이 지정돼 있으면 그 타입(router/agent/…)으로,
             # 없으면 기본 "node" 로 방출한다(완전 opt-in, 기존 챕터 무영향).
             ntype = spec.node_types.get(nid, "node")
-            nodes.append(_node(nid, n.name, ntype, nid in conditional_targets))
+            nodes.append(_node(nid, n.name, ntype, nid in conditional_targets,
+                               doc=spec.node_docs.get(nid)))
 
     edges = []
     for e in g.edges:
-        # 조건분기 엣지 라벨: edge.data 있으면 사용, 없으면 타깃 id 로 폴백.
-        label = e.data if e.data else (e.target if e.conditional else None)
-        edges.append(_edge(e.source, e.target, e.conditional, label))
+        key = f"{e.source}->{e.target}"
+        # 조건분기 엣지 라벨: 명시 edge_labels 우선.
+        # 없으면 edge.data 를 쓰되 타깃 id 와 동일한 값(중복 노이즈)은 억제한다.
+        raw = e.data if (e.data and e.data != e.target) else None
+        label = spec.edge_labels.get(key) or raw
+        edges.append(_edge(e.source, e.target, e.conditional, label,
+                           doc=spec.edge_docs.get(key)))
 
     return nodes, edges
 
@@ -59,7 +68,7 @@ def _from_lcel(spec) -> tuple[list[dict], list[dict]]:
     if shape == "single":
         nodes = [
             _node("__start__", "START", "start"),
-            _node("llm", "ChatOpenAI", "llm"),
+            _node("llm", "ChatOpenAI", "llm", doc=spec.node_docs.get("llm")),
             _node("__end__", "END", "end"),
         ]
         edges = [_edge("__start__", "llm"), _edge("llm", "__end__")]
@@ -69,9 +78,9 @@ def _from_lcel(spec) -> tuple[list[dict], list[dict]]:
         parser_label = "JsonOutputParser" if spec.parser_kind == "json" else "StrOutputParser"
         nodes = [
             _node("__start__", "START", "start"),
-            _node("prompt", "PromptTemplate", "prompt"),
-            _node("llm", "ChatOpenAI", "llm"),
-            _node("parser", parser_label, "parser"),
+            _node("prompt", "PromptTemplate", "prompt", doc=spec.node_docs.get("prompt")),
+            _node("llm", "ChatOpenAI", "llm", doc=spec.node_docs.get("llm")),
+            _node("parser", parser_label, "parser", doc=spec.node_docs.get("parser")),
             _node("__end__", "END", "end"),
         ]
         edges = [
@@ -86,7 +95,7 @@ def _from_lcel(spec) -> tuple[list[dict], list[dict]]:
         nodes = [_node("__start__", "START", "start")]
         edges = []
         for br in spec.branches:
-            nodes.append(_node(br, br, "branch"))
+            nodes.append(_node(br, br, "branch", doc=spec.node_docs.get(br)))
             edges.append(_edge("__start__", br))
             edges.append(_edge(br, "__end__"))
         nodes.append(_node("__end__", "END", "end"))

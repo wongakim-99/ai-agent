@@ -42,6 +42,15 @@ class GraphSpec:
     # 미지정 노드는 topology 에서 기본 "node" 로 폴백된다(완전 opt-in).
     node_types: dict[str, str] = field(default_factory=dict)
 
+    # --- 교육용 나레이션 (opt-in, 없으면 프론트가 기본 문구로 폴백) ---
+    node_docs: dict[str, str] = field(default_factory=dict)
+    # node_id → 노드 해설(한국어). 실행 중 그 노드가 켜질 때 타임라인에 표시.
+    edge_docs: dict[str, str] = field(default_factory=dict)
+    # "source->target" → 분기/전이 해설. "{state.키}" 플레이스홀더는 프론트에서
+    # 분기 시점의 실제 State 값으로 치환된다("왜 이 길로 갔는지").
+    edge_labels: dict[str, str] = field(default_factory=dict)
+    # "source->target" → 캔버스에 표시할 짧은 라벨(조건 엣지 위 칩). 타깃 id 중복 노이즈 대체.
+
 
 REGISTRY: dict[str, GraphSpec] = {}
 

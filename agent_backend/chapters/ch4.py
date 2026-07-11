@@ -267,4 +267,26 @@ register(GraphSpec(
         "web_agent": "fallback",
         "reporter": "reporter",
     },
+    node_docs={
+        "entry_node": "질문에서 아는 병명(고혈압·당뇨·비만)을 찾아 State의 disease와 found를 기록하는 라우터입니다. 여기서 이후 경로가 갈립니다.",
+        "db_agent": "SQLite(disease.db)에서 식단·운동 정보를 조회합니다. csv_agent와 같은 superstep에서 병렬로 실행됩니다.",
+        "csv_agent": "CSV(disease_info.csv)에서 증상·주의사항을 조회합니다. db_agent와 동시에 실행되는 병렬 일꾼입니다.",
+        "web_agent": "로컬에 병명이 없을 때의 외부 검색 fallback 자리입니다. 데모에서는 항상 web_sufficient=False를 기록해 RAG로 넘깁니다.",
+        "rag_agent": "내부 문서 3건을 토큰 겹침 점수로 검색해 evidence에 추가합니다. web_agent로 온 경로에서만 실행됩니다.",
+        "reporter": "모든 경로가 합류하는 종착점입니다. 수집된 evidence를 모아 하나의 리포트로 정리합니다.",
+    },
+    edge_labels={
+        "entry_node->db_agent": "found",
+        "entry_node->csv_agent": "found",
+        "entry_node->web_agent": "미확인",
+        "web_agent->rag_agent": "웹 불충분",
+        "web_agent->reporter": "웹 충분",
+    },
+    edge_docs={
+        "entry_node->db_agent": "disease='{state.disease}'를 로컬에서 찾았기 때문에(found=true) DB·CSV 에이전트로 병렬 fan-out합니다.",
+        "entry_node->csv_agent": "found=true 이므로 csv_agent도 같은 superstep에서 db_agent와 동시에 시작됩니다.",
+        "entry_node->web_agent": "disease='{state.disease}'(found=false) → 로컬 데이터가 없어 웹 fallback 경로로 갑니다.",
+        "web_agent->rag_agent": "web_sufficient={state.web_sufficient} → 웹만으로 부족해 내부 문서 RAG로 보강합니다.",
+        "web_agent->reporter": "web_sufficient=true 이면 RAG 없이 바로 리포트로 갑니다.",
+    },
 ))

@@ -135,6 +135,10 @@ register(GraphSpec(
     concept="add_edge 로 노드를 일렬로 잇는다. 흐름이 한 방향으로 고정된다.",
     build=build_serial,
     input_example={"question": "감기 걸렸을 때 어떻게 해야 해?", "context": "", "answer": ""},
+    node_docs={
+        "retrieve": "질문을 보고 관련 정보를 State의 context에 채웁니다. (여기선 규칙 기반 조회)",
+        "generate": "context를 근거로 최종 answer를 만듭니다. retrieve가 끝나야 실행됩니다.",
+    },
 ))
 
 register(GraphSpec(
@@ -143,6 +147,19 @@ register(GraphSpec(
     concept="add_conditional_edges + 라우터. 실행 중 State를 보고 한쪽 길만 선택한다.",
     build=build_conditional,
     input_example={"disease": "고혈압", "info": "", "answer": ""},
+    node_docs={
+        "lookup": "disease로 로컬 정보(info)를 찾아 State에 기록합니다. 이 값이 다음 분기를 결정합니다.",
+        "answer_node": "info가 있을 때 실행됩니다. 찾은 관리법으로 답을 만듭니다.",
+        "fallback_node": "info가 비었을 때 실행됩니다. 추가 검색이 필요하다고 안내합니다.",
+    },
+    edge_labels={
+        "lookup->answer_node": "info 있음",
+        "lookup->fallback_node": "info 없음",
+    },
+    edge_docs={
+        "lookup->answer_node": "info='{state.info}' → 로컬 정보가 있으므로 answer_node로 갑니다.",
+        "lookup->fallback_node": "info가 비어 있어(로컬 정보 없음) fallback_node로 갑니다.",
+    },
 ))
 
 register(GraphSpec(
@@ -152,4 +169,9 @@ register(GraphSpec(
     build=build_parallel,
     input_example={"topic": "고혈압 관리", "notes": [], "report": ""},
     state_reducers={"notes": "append"},
+    node_docs={
+        "food_node": "식단 관점의 메모를 notes에 추가합니다. exercise_node와 동시에 실행됩니다.",
+        "exercise_node": "운동 관점의 메모를 notes에 추가합니다. food_node와 병렬로 실행됩니다.",
+        "report_node": "두 병렬 노드가 모두 끝난 뒤, reducer로 합쳐진 notes를 리포트로 정리합니다.",
+    },
 ))

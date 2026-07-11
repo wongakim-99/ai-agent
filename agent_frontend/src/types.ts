@@ -12,8 +12,9 @@ export interface GraphSummary {
 export interface TopologyNode {
   id: string;
   label: string;
-  type: string; // start | end | node | prompt | llm | parser | branch
+  type: string; // start | end | node | prompt | llm | parser | branch | router | agent | fallback | reporter
   is_conditional_target: boolean;
+  doc?: string | null; // 교육용 노드 해설 (opt-in)
 }
 
 export interface TopologyEdge {
@@ -21,6 +22,7 @@ export interface TopologyEdge {
   target: string;
   conditional: boolean;
   condition_label: string | null;
+  doc?: string | null; // 교육용 분기 해설 ("{state.키}" 치환 대상)
 }
 
 export interface Topology {
@@ -48,5 +50,13 @@ export type RunEvent =
   | { type: "error"; message: string; node?: string };
 
 export type NodeStatus = "idle" | "running" | "done";
+
+// 사람이 읽는 실행 해설 한 줄 (원시 이벤트를 교육용 문장으로 변환한 결과)
+export interface NarrationLine {
+  id: number;
+  icon: "node" | "edge" | "branch" | "done" | "error" | "info";
+  text: string;
+  parallel?: boolean; // 다른 노드와 동시에 실행 중이면 true
+}
 
 export const edgeId = (source: string, target: string) => `${source}->${target}`;

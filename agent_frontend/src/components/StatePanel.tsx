@@ -11,6 +11,7 @@ function render(value: unknown): string {
 }
 
 // 실행되며 채워지는 State/출력을 key-value 로 보여준다.
+// 가장 최근 node_end 가 바꾼 키는 잠깐 강조(changedKeys)한다.
 export function StatePanel({ runState }: Props) {
   const entries = Object.entries(runState.state);
 
@@ -21,8 +22,14 @@ export function StatePanel({ runState }: Props) {
       <div className="statelist">
         {entries.map(([k, v]) => {
           const empty = v === "" || v === null || (Array.isArray(v) && v.length === 0);
+          const changed = runState.changedKeys.has(k);
           return (
-            <div key={k} className={`stateitem ${empty ? "stateitem--empty" : "stateitem--filled"}`}>
+            <div
+              key={k}
+              className={`stateitem ${empty ? "stateitem--empty" : "stateitem--filled"} ${
+                changed ? "stateitem--changed" : ""
+              }`}
+            >
               <span className="stateitem__key">{k}</span>
               <pre className="stateitem__val">{render(v)}</pre>
             </div>

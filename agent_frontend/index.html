@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LangGraph 토폴로지 실행 뷰어</title>
+    <script>
+      // FOUC 방지: React 렌더 전에 저장값(또는 시스템)으로 data-theme 을 선세팅.
+      (function () {
+        var s = localStorage.getItem("viewer-theme");
+        var dark = s ? s === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

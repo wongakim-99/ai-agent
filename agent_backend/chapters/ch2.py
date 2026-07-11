@@ -69,6 +69,7 @@ register(GraphSpec(
     concept="가장 기본. LLM 노드 하나에 질문을 던지고 답을 받는다. (입력→출력, 단방향)",
     build=build_invoke,
     input_example={"question": "AI Agent를 한 문장으로 설명해줘"},
+    node_docs={"llm": "입력 문자열을 그대로 LLM에 넘겨 답을 받습니다. 체인도 그래프도 없는 단일 호출입니다."},
 ))
 
 register(GraphSpec(
@@ -77,6 +78,11 @@ register(GraphSpec(
     concept="| 파이프로 prompt → llm → parser 를 잇는다. LangGraph의 add_edge 직렬과 같은 감각.",
     build=build_explain,
     input_example={"topic": "LangGraph"},
+    node_docs={
+        "prompt": "입력({topic})을 프롬프트 템플릿에 끼워 완성된 프롬프트를 만듭니다.",
+        "llm": "완성된 프롬프트를 LLM에 보내 응답 메시지를 받습니다.",
+        "parser": "StrOutputParser가 응답 메시지에서 문자열만 뽑아냅니다.",
+    },
 ))
 
 register(GraphSpec(
@@ -85,6 +91,11 @@ register(GraphSpec(
     concept="system 에 역할, human 에 질문. 같은 prompt→llm→parser 지만 프롬프트가 대화형이다.",
     build=build_chat,
     input_example={"question": "Tool과 Agent의 차이를 알려줘"},
+    node_docs={
+        "prompt": "system(역할)과 human(질문)을 합쳐 대화형 프롬프트를 만듭니다.",
+        "llm": "대화형 프롬프트를 LLM에 보내 응답을 받습니다.",
+        "parser": "StrOutputParser가 응답에서 문자열만 뽑아냅니다.",
+    },
 ))
 
 register(GraphSpec(
@@ -93,6 +104,11 @@ register(GraphSpec(
     concept="파서만 JsonOutputParser 로 바꾸면 결과가 문자열이 아니라 dict가 된다. (분기 판단에 유용)",
     build=build_sentiment,
     input_example={"review": "배송도 빠르고 품질도 좋아서 만족합니다."},
+    node_docs={
+        "prompt": "리뷰({review})와 JSON 출력 형식 안내를 합쳐 프롬프트를 만듭니다.",
+        "llm": "LLM이 JSON 형식으로 감정 분석 결과를 생성합니다.",
+        "parser": "JsonOutputParser가 응답 문자열을 파싱해 dict로 만듭니다. (문자열이 아님)",
+    },
 ))
 
 register(GraphSpec(
@@ -102,4 +118,8 @@ register(GraphSpec(
     concept="한 입력을 요약/키워드 체인에 동시에 흘린다. LangGraph 3-3 병렬 fan-out의 축소판.",
     build=build_analyze,
     input_example={"text": "LangGraph는 State를 중심으로 노드와 엣지를 연결해 에이전트 워크플로우를 구성한다."},
+    node_docs={
+        "summary": "같은 입력을 요약 체인(prompt→llm→parser)에 흘려 한 문장 요약을 만듭니다.",
+        "keywords": "같은 입력을 키워드 체인에 동시에 흘려 핵심 키워드 3개를 뽑습니다.",
+    },
 ))

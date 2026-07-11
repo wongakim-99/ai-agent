@@ -14,6 +14,14 @@
 - 병렬은 **두 노드가 동시에** 켜지고,
 - State가 **실시간으로** 채워진다 (3-3 `operator.add` reducer 병합까지 눈으로 확인).
 
+UX (2026-07 개편):
+- **ELK 직교 라우팅**으로 선이 노드를 관통·교차하지 않는다(노드가 많아지거나 사이클이 생겨도 안 꼬임).
+- 좌측 **사이드바**에서 챕터별 그래프 선택 + 개념 설명.
+- **다크/라이트 테마 토글**(localStorage 저장, 기본은 시스템 설정).
+- **실행 해설**: 노드/분기마다 사람이 읽는 한국어 나레이션. 조건 분기는 `{state.키}`를 실제 값으로 치환해 "왜 이 길로 갔는지"를 보여준다(예: `disease='고혈압' → found=true`). 정적 큐레이션이라 **API 키 없이** 동작.
+- **재생 속도**(0.5×/1×/2×/즉시): 규칙 기반 그래프도 눈으로 따라갈 수 있게 클라이언트에서 이벤트를 페이싱한다.
+- 변경된 State 키 하이라이트 + 범례(legend).
+
 > 왜? "LangGraph = State + 노드 + 엣지"를 눈으로 체감하고, 이후 라우터를 LLM으로 바꿔 L3 에이전트로 넘어가는 다리로 삼기 위해.
 
 ## 구조
@@ -32,7 +40,7 @@ agent_backend/
   schemas/           schemas.py
   requirements.txt
 
-agent_frontend/      React + Vite + React Flow(@xyflow/react) + dagre  (레포 최상위)
+agent_frontend/      React + Vite + React Flow(@xyflow/react) + elkjs  (레포 최상위)
 ```
 
 핵심: 백엔드가 `graph.get_graph()`로 토폴로지를, `astream_events(v2)`로 실행 이벤트를 뽑아
