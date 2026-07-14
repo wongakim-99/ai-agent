@@ -71,3 +71,43 @@ class TextResult(BaseModel):
 class DictResult(BaseModel):
     """구조화된 dict 결과 (2-4 sentiment, 2-5 analyze)."""
     result: dict
+
+
+# ---- 챕터 5: 데이트 코스 플래너 (api/date.py) ----
+class DatePlanIn(BaseModel):
+    question: str = "홍대에서 조용한 저녁 데이트 코스 짜줘, 카페 좋아해"
+
+
+class CourseStop(BaseModel):
+    """코스의 한 스텝 (시간 순서 있는 방문 장소)."""
+    step: int
+    time_slot: str           # "저녁 6시" 등
+    category: str            # restaurant | cafe | activity
+    place_name: str
+    address: str
+    lat: float | None = None
+    lng: float | None = None
+    url: str
+    reason: str
+
+
+class MapPlace(BaseModel):
+    """지도 마커용 평면 장소 (코스 스텝 N == 마커 N)."""
+    place_name: str
+    address: str
+    lat: float | None = None
+    lng: float | None = None
+    url: str
+    category: str
+
+
+class DatePlanOut(BaseModel):
+    region: str
+    summary: str
+    course: list[CourseStop]
+    places: list[MapPlace]
+
+
+class DateConfigOut(BaseModel):
+    """프론트 지도 SDK용 Kakao JavaScript 키 (REST 키는 절대 노출하지 않는다)."""
+    kakaoJsKey: str

@@ -23,7 +23,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from agent_backend.common.logging_config import setup_logging, get_logger
-from agent_backend.api import health, llm, graphs
+from agent_backend.api import health, llm, graphs, date
 
 setup_logging()
 logger = get_logger("app")
@@ -64,3 +64,4 @@ async def log_requests(request: Request, call_next):
 app.include_router(health.router)
 app.include_router(llm.router)
 app.include_router(graphs.router)
+app.include_router(date.router)

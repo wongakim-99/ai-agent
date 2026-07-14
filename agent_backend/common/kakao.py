@@ -1,0 +1,97 @@
+"""
+Kakao Local API 클라이언트 — 실제 장소 검색(맛집/카페/활동).
+
+챕터5 데이트 코스 에이전트의 검색 에이전트들이 이걸 호출한다.
+  - KAKAO_REST_API_KEY 가 있으면 실제 Kakao Local 키워드 검색.
+  - 키가 없거나 호출이 실패하면 mock 장소로 graceful degrade
+    (오프라인/무키에서도 지도·코스가 렌더되도록).
+
+주의(좌표 축):
+  Kakao 응답의 x = 경도(longitude), y = 위도(latitude) 이고 둘 다 "문자열"이다.
+  → lat=float(y), lng=float(x) 로 바꿔서 "원시 primitive dict" 로만 담는다.
+    (common/streaming.py 의 _jsonify 가 비원시 객체를 str() 로 뭉개므로,
+     State/SSE 안전을 위해 dict 값은 전부 str/float 등 원시여야 한다)
+"""
+from __future__ import annotations
+
+import os
+
+import httpx
+
+KEYWORD_URL = "https://dapi.kakao.com/v2/local/search/keyword.json"
+
+# 카테고리 role → 기본 검색어 (planner 가 키워드를 안 주면 이걸 사용)
+# 활동(activity)은 카테고리 코드(CT1/AT4)가 영화관 등을 일관되게 못 잡으므로 키워드 검색을 쓴다.
+DEFAULT_KEYWORDS = {
+    "restaurant": "맛집",
+    "cafe": "카페",
+    "activity": "가볼만한 곳",
+}
+
+
+def kakao_search(region: str, keyword: str, category: str, size: int = 8) -> list[dict]:
+    """`{region} {keyword}` 로 Kakao Local 키워드 검색 → 원시 장소 dict 리스트.
+
+    실패/무키 시 예외를 위로 던지지 않고 mock 으로 폴백한다.
+    (스트리밍 계층에 타임아웃이 없으므로 여기서 반드시 timeout 을 건다)
+    """
+    query = f"{region} {keyword}".strip()
+    key = os.environ.get("KAKAO_REST_API_KEY")
+    if not key:
+        return _mock_places(region, keyword, category, size)
+
+    try:
+        resp = httpx.get(
+            KEYWORD_URL,
+            params={"query": query, "size": size},
+            headers={"Authorization": f"KakaoAK {key}"},
+            timeout=5.0,
+        )
+        resp.raise_for_status()
+        docs = resp.json().get("documents", [])
+    except (httpx.HTTPError, ValueError):  # 네트워크/HTTP/JSON 파싱 실패
+        return _mock_places(region, keyword, category, size)
+
+    places: list[dict] = []
+    for doc in docs:
+        try:
+            places.append(_to_place(doc, category))
+        except (KeyError, ValueError, TypeError):
+            continue  # 좌표가 없거나 깨진 문서는 건너뜀
+    return places
+
+
+def _to_place(doc: dict, category: str) -> dict:
+    """Kakao document → 원시 primitive dict (JSON/State 안전)."""
+    return {
+        "place_name": doc["place_name"],
+        "address": doc.get("road_address_name") or doc.get("address_name", ""),
+        "lat": float(doc["y"]),   # Kakao y = 위도(latitude)
+        "lng": float(doc["x"]),   # Kakao x = 경도(longitude)
+        "url": doc.get("place_url", ""),
+        "category": category,     # role: restaurant | cafe | activity
+        "kakao_category": doc.get("category_name", ""),
+        "phone": doc.get("phone", ""),
+    }
+
+
+# mock 좌표 기준점 (서울 시청 근방) — 인덱스별 소폭 오프셋으로 지도에 흩뿌린다
+_MOCK_BASE = (37.5665, 126.9780)
+
+
+def _mock_places(region: str, keyword: str, category: str, size: int) -> list[dict]:
+    """무키/오프라인 폴백용 샘플 장소. 지도·코스가 그래도 렌더되도록."""
+    base_lat, base_lng = _MOCK_BASE
+    places: list[dict] = []
+    for i in range(min(size, 4)):
+        places.append({
+            "place_name": f"[샘플] {region} {keyword} {i + 1}",
+            "address": f"{region} 일대 (샘플 주소 {i + 1})",
+            "lat": base_lat + i * 0.004,
+            "lng": base_lng + i * 0.004,
+            "url": "",
+            "category": category,
+            "kakao_category": f"샘플 > {keyword}",
+            "phone": "",
+        })
+    return places
