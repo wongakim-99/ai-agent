@@ -109,5 +109,5 @@ class DatePlanOut(BaseModel):
 
 
 class DateConfigOut(BaseModel):
-    """프론트 지도 SDK용 Kakao JavaScript 키 (REST 키는 절대 노출하지 않는다)."""
-    kakaoJsKey: str
+    """프론트 지도 표시용 네이버 지도(NCP) Client ID (도메인 제한 공개키)."""
+    naverMapsClientId: str

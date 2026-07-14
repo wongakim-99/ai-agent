@@ -25,8 +25,8 @@ _graph = lru_cache(build_date_course)
 
 @router.get("/config", response_model=schemas.DateConfigOut)
 def config():
-    """프론트 지도 표시용 Kakao JavaScript 키. (REST 키는 백엔드 전용, 절대 노출 안 함)"""
-    return {"kakaoJsKey": os.environ.get("KAKAO_JAVASCRIPT_API_KEY", "")}
+    """프론트 지도 표시용 네이버 지도(NCP) Client ID. (지도 표시 전용 — 도메인 제한됨)"""
+    return {"naverMapsClientId": os.environ.get("NAVER_MAPS_CLIENT_ID", "")}
 
 
 @router.post("/plan", response_model=schemas.DatePlanOut)
