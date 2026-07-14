@@ -27,3 +27,19 @@ export interface DatePlanResult {
   course: CourseStop[];
   places: MapPlace[];
 }
+
+export interface DateConfig {
+  naverMapsClientId: string;
+}
+
+// 채팅 대화의 한 메시지 (사용자 입력 or 에이전트 추천 결과)
+export type ChatMessage =
+  | { id: number; role: "user"; text: string }
+  | { id: number; role: "assistant"; result: DatePlanResult };
+
+// 네이버 지도 Dynamic Map SDK 는 <script> 로 로드되어 전역(window.naver)에 얹힌다.
+declare global {
+  interface Window {
+    naver: any;
+  }
+}

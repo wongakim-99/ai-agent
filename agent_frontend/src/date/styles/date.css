@@ -1,4 +1,4 @@
-/* 데이트 코스 플래너 — 별도 앱 레이아웃 (토폴로지 뷰어와 CSS 변수/테마 공유) */
+/* 데이트 코스 플래너 — 지도 + 채팅 레이아웃 (토폴로지 뷰어와 CSS 변수/테마 공유) */
 
 .date {
   display: flex;
@@ -27,76 +27,31 @@
 .date__logo { color: var(--danger); }
 .date__sub { font-size: var(--fs-sm); color: var(--text-dim); font-weight: 400; }
 
-/* 요청 입력 바 */
-.rb {
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-soft);
-}
-.rb__row { display: flex; gap: var(--space-3); }
-.rb__input {
-  flex: 1;
-  resize: vertical;
-  min-height: 46px;
-  padding: var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-panel);
-  color: var(--text);
-  font-size: var(--fs-md);
-  font-family: inherit;
-}
-.rb__input:focus { outline: none; border-color: var(--accent); }
-.rb__btn {
-  padding: 0 var(--space-5);
-  border: none;
-  border-radius: var(--radius-md);
-  background: var(--accent);
-  color: #fff;
-  font-weight: 600;
-  font-size: var(--fs-md);
-  white-space: nowrap;
-  cursor: pointer;
-}
-.rb__btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.rb__examples { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
-.rb__chip {
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--bg-panel);
-  color: var(--text-dim);
-  font-size: var(--fs-xs);
-  cursor: pointer;
-}
-.rb__chip:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
-.rb__chip:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* 본문: 지도 + 코스 목록 */
+/* 본문: 왼쪽 지도 + 오른쪽 채팅 */
 .date__body { flex: 1; display: flex; min-height: 0; }
 .date__map { flex: 1; min-width: 0; }
-.date__list {
-  width: 380px;
+.date__chat {
+  width: 420px;
   border-left: 1px solid var(--border);
-  overflow-y: auto;
   background: var(--bg-soft);
-}
-.date__placeholder {
-  flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-dim);
-  font-size: var(--fs-md);
-  padding: var(--space-5);
-  text-align: center;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* 지도 (컨테이너 높이 필수 — 없으면 0px 로 렌더됨) */
 .map { width: 100%; height: 100%; min-height: 60vh; }
+.map--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  background: var(--bg-panel);
+  padding: var(--space-5);
+  text-align: center;
+}
 
-/* Leaflet 코스 핀 (순서 숫자) — divIcon className 을 course-pin 으로 대체해 기본 흰 박스 제거 */
-.course-pin { background: transparent; border: 0; }
+/* 지도 코스 핀 (순서 숫자) — 네이버 지도 마커 커스텀 아이콘 content */
 .course-pin__inner {
   width: 28px;
   height: 28px;
@@ -111,23 +66,100 @@
   border: 2px solid #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
-.map--empty {
+
+/* ===== 채팅 ===== */
+.chat { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.chat__log {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-dim);
-  background: var(--bg-panel);
-  padding: var(--space-5);
-  text-align: center;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-/* 코스 목록 */
+/* 시작 안내 */
+.chat__welcome { margin: auto 0; text-align: center; color: var(--text-dim); padding: var(--space-4); }
+.chat__welcome-title { font-size: var(--fs-lg); font-weight: 600; color: var(--text); margin-bottom: var(--space-2); }
+.chat__welcome-sub { font-size: var(--fs-sm); margin-bottom: var(--space-4); line-height: 1.5; }
+.chat__examples { display: flex; flex-direction: column; gap: var(--space-2); }
+.chat__chip {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.chat__chip:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+.chat__chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 메시지 버블 */
+.msg { display: flex; }
+.msg--user { justify-content: flex-end; }
+.msg--ai { justify-content: flex-start; }
+.msg__bubble { font-size: var(--fs-md); line-height: 1.5; border-radius: var(--radius-md); }
+.msg__bubble--user {
+  max-width: 88%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 2px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.msg__bubble--ai {
+  width: 100%;
+  padding: var(--space-3);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 2px;
+}
+.msg__bubble--ai .cl { padding: 0; } /* CourseList 자체 패딩 제거(버블이 이미 padding) */
+.chat__typing { color: var(--text-dim); font-style: italic; }
+
+/* 입력 */
+.chat__input {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.chat__textarea {
+  flex: 1;
+  resize: none;
+  max-height: 120px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-family: inherit;
+}
+.chat__textarea:focus { outline: none; border-color: var(--accent); }
+.chat__send {
+  flex: none;
+  width: 42px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--fs-md);
+  cursor: pointer;
+}
+.chat__send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ===== 코스 목록 (채팅 AI 버블 안에서 재사용) ===== */
 .cl { padding: var(--space-4); }
-.cl--empty { color: var(--text-dim); text-align: center; padding: var(--space-6) var(--space-4); }
-.cl__head { margin-bottom: var(--space-4); }
-.cl__region { font-weight: 600; font-size: var(--fs-lg); margin-bottom: var(--space-2); }
+.cl--empty { color: var(--text-dim); text-align: center; padding: var(--space-4); }
+.cl__head { margin-bottom: var(--space-3); }
+.cl__region { font-weight: 600; font-size: var(--fs-md); margin-bottom: var(--space-1); }
 .cl__summary { margin: 0; font-size: var(--fs-sm); color: var(--text-dim); line-height: 1.5; }
-.cl__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.cl__list { list-style: none; margin: var(--space-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .cl__item {
   display: flex;
   gap: var(--space-3);
@@ -168,9 +200,10 @@ a.cl__name:hover { color: var(--accent); }
 .cl__addr { font-size: var(--fs-xs); color: var(--text-dim); margin-bottom: var(--space-1); }
 .cl__reason { font-size: var(--fs-sm); line-height: 1.45; }
 
-/* 좁은 화면: 지도/목록 세로 스택 */
-@media (max-width: 760px) {
+/* 좁은 화면: 지도 위 / 채팅 아래로 세로 스택 */
+@media (max-width: 860px) {
   .date__body { flex-direction: column; }
-  .date__list { width: 100%; border-left: none; border-top: 1px solid var(--border); }
-  .map { min-height: 40vh; }
+  .date__map { flex: none; height: 42vh; }
+  .date__chat { width: 100%; flex: 1; border-left: none; border-top: 1px solid var(--border); }
+  .map { min-height: 0; }
 }

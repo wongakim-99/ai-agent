@@ -1,75 +1,103 @@
-import { useEffect, useRef } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { useEffect, useRef, useState } from "react";
 import type { MapPlace } from "../types";
 
-// 무료 OpenStreetMap + Leaflet 로 지도를 그린다 (API 키/가입/카드 전부 불필요).
-// 코스 순서를 핀 위 숫자로 보여주는 divIcon 을 써서 기본 마커 이미지 의존도 없앴다.
+// 네이버 지도 Dynamic Map SDK 를 딱 한 번만 로드하는 싱글턴 로더.
+// NCP 통합 콘솔로 발급한 Client ID → ncpKeyId 파라미터.
+let sdkPromise: Promise<any> | null = null;
+
+function loadNaver(clientId: string): Promise<any> {
+  if (window.naver?.maps) return Promise.resolve(window.naver);
+  if (sdkPromise) return sdkPromise;
+  sdkPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}`;
+    script.onload = () => resolve(window.naver);
+    script.onerror = () =>
+      reject(new Error("네이버 지도 SDK 로드 실패 (Client ID / Web 도메인 등록 확인)"));
+    document.head.appendChild(script);
+  });
+  return sdkPromise;
+}
 
 interface Props {
+  clientId: string;
   places: MapPlace[];
 }
 
-function numberedIcon(n: number): L.DivIcon {
-  return L.divIcon({
-    className: "course-pin",
-    html: `<div class="course-pin__inner">${n}</div>`,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -14],
-  });
-}
-
-export function CourseMap({ places }: Props) {
+export function CourseMap({ clientId, places }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const layerRef = useRef<L.LayerGroup | null>(null);
+  const mapRef = useRef<any>(null);
+  const infoRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // 지도 1회 생성 (OSM 타일)
+  // 지도 1회 생성
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-    const map = L.map(containerRef.current).setView([37.5665, 126.978], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(map);
-    layerRef.current = L.layerGroup().addTo(map);
-    mapRef.current = map;
-    // flex 레이아웃에서 초기 크기 계산이 어긋날 수 있어 한 번 보정
-    setTimeout(() => map.invalidateSize(), 0);
+    if (!clientId || !containerRef.current || mapRef.current) return;
+    let cancelled = false;
+    loadNaver(clientId)
+      .then((naver) => {
+        if (cancelled || mapRef.current || !containerRef.current) return;
+        mapRef.current = new naver.maps.Map(containerRef.current, {
+          center: new naver.maps.LatLng(37.5665, 126.978),
+          zoom: 12,
+        });
+        infoRef.current = new naver.maps.InfoWindow({ borderWidth: 0 });
+        setReady(true);
+      })
+      .catch((e) => setError(String(e)));
     return () => {
-      map.remove();
-      mapRef.current = null;
-      layerRef.current = null;
+      cancelled = true;
     };
-  }, []);
+  }, [clientId]);
 
-  // places 바뀌면 마커 다시 그림 + 영역 맞춤
+  // places(또는 지도 준비 상태)가 바뀌면 마커 다시 그림 + 영역 맞춤
   useEffect(() => {
+    const naver = window.naver;
     const map = mapRef.current;
-    const layer = layerRef.current;
-    if (!map || !layer) return;
-    layer.clearLayers();
+    if (!naver?.maps || !map) return;
+
+    markersRef.current.forEach((m) => m.setMap(null));
+    markersRef.current = [];
 
     const pts = places.filter(
       (p): p is MapPlace & { lat: number; lng: number } => p.lat != null && p.lng != null,
     );
     if (pts.length === 0) return;
 
-    const latlngs: L.LatLngExpression[] = [];
+    const bounds = new naver.maps.LatLngBounds();
     pts.forEach((p, i) => {
-      const marker = L.marker([p.lat, p.lng], { icon: numberedIcon(i + 1) }).addTo(layer);
-      marker.bindPopup(
-        `<div style="font-size:13px;line-height:1.5;">
-           <b>${i + 1}. ${p.place_name}</b><br/>
-           <span style="color:#888">${p.address}</span>
-           ${p.url ? `<br/><a href="${p.url}" target="_blank" rel="noreferrer">지도에서 보기 ↗</a>` : ""}
-         </div>`,
-      );
-      latlngs.push([p.lat, p.lng]);
+      const pos = new naver.maps.LatLng(p.lat, p.lng); // (위도, 경도)
+      const marker = new naver.maps.Marker({
+        position: pos,
+        map,
+        icon: {
+          content: `<div class="course-pin__inner">${i + 1}</div>`,
+          anchor: new naver.maps.Point(14, 14),
+        },
+      });
+      naver.maps.Event.addListener(marker, "click", () => {
+        infoRef.current.setContent(
+          `<div style="padding:8px 12px;font-size:13px;line-height:1.5;min-width:140px;">
+             <b>${i + 1}. ${p.place_name}</b><br/>
+             <span style="color:#888">${p.address}</span>
+             ${p.url ? `<br/><a href="${p.url}" target="_blank" rel="noreferrer">지도에서 보기 ↗</a>` : ""}
+           </div>`,
+        );
+        infoRef.current.open(map, marker);
+      });
+      markersRef.current.push(marker);
+      bounds.extend(pos);
     });
-    map.fitBounds(L.latLngBounds(latlngs), { padding: [40, 40], maxZoom: 15 });
-  }, [places]);
+    map.fitBounds(bounds, { top: 48, right: 48, bottom: 48, left: 48 });
+  }, [places, ready]);
 
+  if (!clientId) {
+    return <div className="map map--empty">네이버 지도 Client ID가 없어 지도를 표시할 수 없습니다.</div>;
+  }
+  if (error) {
+    return <div className="map map--empty">지도 로드 실패: {error}</div>;
+  }
   return <div className="map" ref={containerRef} />;
 }
