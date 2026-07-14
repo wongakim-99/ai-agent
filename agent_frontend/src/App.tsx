@@ -48,7 +48,10 @@ export default function App() {
           <span className="app__logo">◈</span> LangGraph 토폴로지 실행 뷰어
           <span className="app__sub">배운 그래프를 눈으로</span>
         </div>
-        <ThemeToggle theme={theme} onToggle={toggle} />
+        <div className="header-actions">
+          <a className="nav-link" href="/date.html">💕 데이트 플래너 →</a>
+          <ThemeToggle theme={theme} onToggle={toggle} />
+        </div>
       </header>
 
       {loadError && (

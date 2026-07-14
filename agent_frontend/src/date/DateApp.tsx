@@ -43,7 +43,10 @@ export default function DateApp() {
           <span className="date__logo">❤</span> 데이트 코스 플래너
           <span className="date__sub">AI와 대화하며 실제 장소로 코스를 짜보세요</span>
         </div>
-        <ThemeToggle theme={theme} onToggle={toggle} />
+        <div className="header-actions">
+          <a className="nav-link" href="/index.html">◈ 토폴로지 뷰어 →</a>
+          <ThemeToggle theme={theme} onToggle={toggle} />
+        </div>
       </header>
 
       {error && <div className="app__error">{error}</div>}
