@@ -1,0 +1,159 @@
+/* 데이트 코스 플래너 — 별도 앱 레이아웃 (토폴로지 뷰어와 CSS 변수/테마 공유) */
+
+.date {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* 헤더 */
+.date__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-soft);
+}
+.date__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-weight: 600;
+  font-size: var(--fs-lg);
+}
+.date__logo { color: var(--danger); }
+.date__sub { font-size: var(--fs-sm); color: var(--text-dim); font-weight: 400; }
+
+/* 요청 입력 바 */
+.rb {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-soft);
+}
+.rb__row { display: flex; gap: var(--space-3); }
+.rb__input {
+  flex: 1;
+  resize: vertical;
+  min-height: 46px;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-family: inherit;
+}
+.rb__input:focus { outline: none; border-color: var(--accent); }
+.rb__btn {
+  padding: 0 var(--space-5);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: var(--fs-md);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.rb__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.rb__examples { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.rb__chip {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-panel);
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.rb__chip:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+.rb__chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 본문: 지도 + 코스 목록 */
+.date__body { flex: 1; display: flex; min-height: 0; }
+.date__map { flex: 1; min-width: 0; }
+.date__list {
+  width: 380px;
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  background: var(--bg-soft);
+}
+.date__placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+  padding: var(--space-5);
+  text-align: center;
+}
+
+/* 지도 (컨테이너 높이 필수 — 없으면 0px 로 렌더됨) */
+.map { width: 100%; height: 100%; min-height: 60vh; }
+.map--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  background: var(--bg-panel);
+  padding: var(--space-5);
+  text-align: center;
+}
+
+/* 코스 목록 */
+.cl { padding: var(--space-4); }
+.cl--empty { color: var(--text-dim); text-align: center; padding: var(--space-6) var(--space-4); }
+.cl__head { margin-bottom: var(--space-4); }
+.cl__region { font-weight: 600; font-size: var(--fs-lg); margin-bottom: var(--space-2); }
+.cl__summary { margin: 0; font-size: var(--fs-sm); color: var(--text-dim); line-height: 1.5; }
+.cl__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.cl__item {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+}
+.cl__step {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.cl__body { flex: 1; min-width: 0; }
+.cl__line1 { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1); }
+.cl__tag { font-size: var(--fs-xs); padding: 1px var(--space-2); border-radius: var(--radius-sm); font-weight: 600; }
+.cl__tag--restaurant { background: var(--run-soft); color: var(--run); }
+.cl__tag--cafe { background: rgba(53, 194, 107, 0.2); color: var(--done); }
+.cl__tag--activity { background: var(--accent-soft); color: var(--accent); }
+.cl__time { font-size: var(--fs-xs); color: var(--text-dim); }
+.cl__name {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-weight: 600;
+  font-size: var(--fs-md);
+  color: var(--text);
+  text-decoration: none;
+}
+a.cl__name:hover { color: var(--accent); }
+.cl__addr { font-size: var(--fs-xs); color: var(--text-dim); margin-bottom: var(--space-1); }
+.cl__reason { font-size: var(--fs-sm); line-height: 1.45; }
+
+/* 좁은 화면: 지도/목록 세로 스택 */
+@media (max-width: 760px) {
+  .date__body { flex-direction: column; }
+  .date__list { width: 100%; border-left: none; border-top: 1px solid var(--border); }
+  .map { min-height: 40vh; }
+}
