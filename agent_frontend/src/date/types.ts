@@ -27,14 +27,3 @@ export interface DatePlanResult {
   course: CourseStop[];
   places: MapPlace[];
 }
-
-export interface DateConfig {
-  kakaoJsKey: string;
-}
-
-// Kakao Maps JS SDK 는 <script> 태그로 로드되어 전역(window.kakao)에 얹힌다.
-declare global {
-  interface Window {
-    kakao: any;
-  }
-}

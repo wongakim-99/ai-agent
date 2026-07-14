@@ -1,26 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { ThemeToggle } from "../components/ThemeToggle";
 import { useTheme } from "../hooks/useTheme";
 import { RequestBar } from "./components/RequestBar";
 import { CourseMap } from "./components/CourseMap";
 import { CourseList } from "./components/CourseList";
-import { getDateConfig, planDate } from "./api/client";
+import { planDate } from "./api/client";
 import type { DatePlanResult } from "./types";
 
 export default function DateApp() {
   const { theme, toggle } = useTheme();
-  const [kakaoJsKey, setKakaoJsKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DatePlanResult | null>(null);
-
-  // 지도 SDK 용 JS 키를 백엔드에서 받아온다 (키 출처는 루트 .env 하나)
-  useEffect(() => {
-    getDateConfig()
-      .then((c) => setKakaoJsKey(c.kakaoJsKey))
-      .catch((e) => setError(String(e)));
-  }, []);
 
   const onSubmit = (question: string) => {
     setLoading(true);
@@ -49,7 +41,7 @@ export default function DateApp() {
         {result ? (
           <>
             <section className="date__map">
-              <CourseMap jsKey={kakaoJsKey} places={result.places} />
+              <CourseMap places={result.places} />
             </section>
             <section className="date__list">
               <CourseList region={result.region} summary={result.summary} course={result.course} />
