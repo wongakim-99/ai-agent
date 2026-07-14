@@ -29,7 +29,8 @@ from langgraph.graph import StateGraph, START, END
 
 from agent_backend.common.registry import GraphSpec, register
 from agent_backend.common.llm import get_llm
-from agent_backend.common.kakao import kakao_search, DEFAULT_KEYWORDS
+from agent_backend.common.kakao import DEFAULT_KEYWORDS
+from agent_backend.common.places import search_places
 
 
 # =========================================================
@@ -146,7 +147,7 @@ def _route_after_planner(state: DateState):
 def _search_agent(state: DateState, category: str, node_name: str):
     region = state.get("region", "서울")
     keyword = state.get("plan", {}).get(category) or DEFAULT_KEYWORDS[category]
-    places = kakao_search(region=region, keyword=keyword, category=category, size=8)
+    places = search_places(region=region, keyword=keyword, category=category, size=8)
     return {"places": places, "searched": [node_name], "trace": [node_name]}
 
 

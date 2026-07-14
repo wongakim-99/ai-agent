@@ -32,13 +32,14 @@ DEFAULT_KEYWORDS = {
 def kakao_search(region: str, keyword: str, category: str, size: int = 8) -> list[dict]:
     """`{region} {keyword}` 로 Kakao Local 키워드 검색 → 원시 장소 dict 리스트.
 
-    실패/무키 시 예외를 위로 던지지 않고 mock 으로 폴백한다.
-    (스트리밍 계층에 타임아웃이 없으므로 여기서 반드시 timeout 을 건다)
+    실패/무키/미승인(403) 시 예외를 던지지 않고 빈 리스트를 반환한다.
+    (호출부 common/places.search_places 가 빈 리스트면 큐레이션 데이터셋으로 폴백)
+    스트리밍 계층에 타임아웃이 없으므로 여기서 반드시 timeout 을 건다.
     """
     query = f"{region} {keyword}".strip()
     key = os.environ.get("KAKAO_REST_API_KEY")
     if not key:
-        return _mock_places(region, keyword, category, size)
+        return []
 
     try:
         resp = httpx.get(
@@ -49,8 +50,8 @@ def kakao_search(region: str, keyword: str, category: str, size: int = 8) -> lis
         )
         resp.raise_for_status()
         docs = resp.json().get("documents", [])
-    except (httpx.HTTPError, ValueError):  # 네트워크/HTTP/JSON 파싱 실패
-        return _mock_places(region, keyword, category, size)
+    except (httpx.HTTPError, ValueError):  # 네트워크/HTTP(403 미승인 포함)/JSON 파싱 실패
+        return []
 
     places: list[dict] = []
     for doc in docs:
@@ -73,25 +74,3 @@ def _to_place(doc: dict, category: str) -> dict:
         "kakao_category": doc.get("category_name", ""),
         "phone": doc.get("phone", ""),
     }
-
-
-# mock 좌표 기준점 (서울 시청 근방) — 인덱스별 소폭 오프셋으로 지도에 흩뿌린다
-_MOCK_BASE = (37.5665, 126.9780)
-
-
-def _mock_places(region: str, keyword: str, category: str, size: int) -> list[dict]:
-    """무키/오프라인 폴백용 샘플 장소. 지도·코스가 그래도 렌더되도록."""
-    base_lat, base_lng = _MOCK_BASE
-    places: list[dict] = []
-    for i in range(min(size, 4)):
-        places.append({
-            "place_name": f"[샘플] {region} {keyword} {i + 1}",
-            "address": f"{region} 일대 (샘플 주소 {i + 1})",
-            "lat": base_lat + i * 0.004,
-            "lng": base_lng + i * 0.004,
-            "url": "",
-            "category": category,
-            "kakao_category": f"샘플 > {keyword}",
-            "phone": "",
-        })
-    return places
