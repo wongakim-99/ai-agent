@@ -1,11 +1,11 @@
 """
 그래프 레지스트리: 챕터별 그래프(LCEL/LangGraph)를 하나의 목록으로 모은다.
 
-각 api/chapters/*.py 가 자기 GraphSpec 을 register() 로 등록한다.
-서버(api/graphs.py)는 list_specs()/get_spec() 으로 이 목록을 읽어
-토폴로지와 실행 스트리밍을 제공한다.
+각 기능 모듈의 service.py(api/chapterN/service.py, api/date_planner/service.py)가
+자기 GraphSpec 을 register() 로 등록한다. 서버(api/graphs.py)는 list_specs()/get_spec()
+으로 이 목록을 읽어 토폴로지와 실행 스트리밍을 제공한다.
 
-챕터 4는 나중에 chapters/ch4.py 를 추가하고 이 파일 맨 아래 import 에 한 줄만
+새 그래프는 service.py 에서 register() 하고 이 파일 맨 아래 import 에 한 줄만
 더하면 끝난다. (엔드포인트/정규화/스트리밍 무수정)
 """
 from __future__ import annotations
@@ -72,6 +72,8 @@ def get_spec(graph_id: str) -> GraphSpec:
 
 # 아래 import 가 각 모듈을 로드하며 register() 를 실행해 REGISTRY 를 채운다.
 # (GraphSpec/register 가 위에 이미 정의돼 있어 순환 import 문제 없음)
-from agent_backend.api.chapters import ch2, ch3, ch4  # noqa: E402,F401
+from agent_backend.api.chapter2 import service as _ch2  # noqa: E402,F401
+from agent_backend.api.chapter3 import service as _ch3  # noqa: E402,F401
+from agent_backend.api.chapter4 import service as _ch4  # noqa: E402,F401
 # 미니 프로젝트(date_planner)도 보너스로 토폴로지 뷰어에 5-1 로 등록된다.
-from agent_backend.api.date_planner import graph as _date_planner_graph  # noqa: E402,F401
+from agent_backend.api.date_planner import service as _date_planner  # noqa: E402,F401

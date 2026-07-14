@@ -1,5 +1,5 @@
 """
-챕터 4 — 로컬 우선 Multi-Agent System (MAS).
+챕터 4 서비스 계층 — 로컬 우선 Multi-Agent System (MAS) 그래프.
 
 노트북 `내_실습_LangGraph_Agent.ipynb` 4-0~4-7 을 그대로 옮겨 하나의 그래프로 조립한다.
 흐름:
@@ -10,15 +10,12 @@
                                                                   reporter (합류)
 
 챕터3의 3패턴(직렬·조건분기·병렬)이 한 그래프에 전부 들어간다.
+데이터 접근(disease.db/csv/RAG 문서)은 repository.py 로 분리했고, 여기서는 조회 함수만 호출한다.
 모든 노드는 규칙 기반 → OPENAI_API_KEY 없이 동작한다.
 """
 from __future__ import annotations
 
-import csv
 import operator
-import re
-import sqlite3
-from pathlib import Path
 from typing import Annotated, Sequence
 
 from typing_extensions import TypedDict
@@ -27,67 +24,8 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 
 from agent_backend.common.registry import GraphSpec, register
-
-
-# =========================================================
-# 로컬 데이터 (노트북 4-0) — repo 루트 기준으로 앵커
-# =========================================================
-# 백엔드는 실행 디렉터리에 의존하면 안 되므로 Path.cwd() 대신 __file__ 로 앵커한다.
-# api/chapters/ch4.py → parents[0]=chapters, [1]=api, [2]=agent_backend, [3]=repo 루트
-REPO_ROOT = Path(__file__).resolve().parents[3]
-DB_PATH = REPO_ROOT / "disease.db"
-CSV_PATH = REPO_ROOT / "disease_info.csv"
-
-
-def ensure_demo_data() -> None:
-    """Git에는 DB/CSV를 올리지 않고, 실행 시 로컬 샘플 데이터를 자동 생성한다(idempotent)."""
-    if not DB_PATH.exists():
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.execute(
-                "CREATE TABLE disease (name TEXT PRIMARY KEY, diet TEXT, exercise TEXT)"
-            )
-            conn.executemany(
-                "INSERT INTO disease VALUES (?, ?, ?)",
-                [
-                    ("고혈압", "저염식, 채소·생선 위주, 칼륨 풍부한 바나나·시금치", "빠르게 걷기 하루 30분, 수영"),
-                    ("당뇨", "정제 탄수화물 제한, 통곡물·잎채소, 저혈당지수 음식", "식후 가벼운 걷기, 근력운동 주 3회"),
-                    ("비만", "고단백 저칼로리, 채소·닭가슴살, 가공식품 줄이기", "유산소+근력 병행, 주 5회 이상"),
-                ],
-            )
-
-    if not CSV_PATH.exists():
-        with CSV_PATH.open("w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=["name", "symptom", "caution"])
-            writer.writeheader()
-            writer.writerows([
-                {"name": "고혈압", "symptom": "두통, 뒷목 뻣뻣함, 어지럼증", "caution": "나트륨 과다 섭취 주의, 정기 혈압 측정"},
-                {"name": "당뇨", "symptom": "잦은 갈증, 빈뇨, 피로, 체중감소", "caution": "혈당 급변 주의, 공복 운동 자제"},
-                {"name": "비만", "symptom": "피로, 관절 부담, 호흡 곤란", "caution": "급격한 단식 금지, 무리한 운동 주의"},
-            ])
-
-
-ensure_demo_data()  # 모듈 import(서버 기동) 시 1회 — 파일 있으면 no-op
-
-
-# =========================================================
-# 설정값 (노트북 4-1)
-# =========================================================
-KNOWN_DISEASES = ["고혈압", "당뇨", "비만"]  # 라우터의 판단 기준 (규칙 기반)
-
-INTERNAL_DOCS = [
-    {
-        "title": "고혈압 생활관리 사내 교육자료",
-        "content": "혈압이 높은 사람은 저염식, 채소와 생선 위주의 식단, 칼륨이 풍부한 식품을 고려한다. 빠르게 걷기와 수영처럼 지속 가능한 유산소 운동이 좋다.",
-    },
-    {
-        "title": "당뇨 생활관리 사내 교육자료",
-        "content": "당뇨 관리는 정제 탄수화물 제한, 통곡물과 잎채소, 식후 가벼운 걷기, 근력운동이 핵심이다.",
-    },
-    {
-        "title": "비만 생활관리 사내 교육자료",
-        "content": "비만 관리는 고단백 저칼로리 식단, 가공식품 줄이기, 유산소와 근력 운동 병행이 중요하다.",
-    },
-]
+from agent_backend.api.chapter4 import repository
+from agent_backend.api.chapter4.repository import KNOWN_DISEASES
 
 
 # =========================================================
@@ -133,14 +71,11 @@ def _route_after_entry(state: AgentState):
 
 
 # =========================================================
-# DB Agent + CSV Agent (노트북 4-4) — 병렬
+# DB Agent + CSV Agent (노트북 4-4) — 병렬, repository 로 조회
 # =========================================================
 def _db_agent(state: AgentState):
     disease = state["disease"]
-    with sqlite3.connect(DB_PATH) as conn:
-        row = conn.execute(
-            "SELECT diet, exercise FROM disease WHERE name = ?", (disease,)
-        ).fetchone()
+    row = repository.fetch_disease_db(disease)
     if not row:
         evidence = f"[DB] {disease} 데이터 없음"
     else:
@@ -151,9 +86,7 @@ def _db_agent(state: AgentState):
 
 def _csv_agent(state: AgentState):
     disease = state["disease"]
-    with CSV_PATH.open(encoding="utf-8") as f:
-        rows = list(csv.DictReader(f))
-    row = next((r for r in rows if r["name"] == disease), None)
+    row = repository.fetch_disease_csv(disease)
     if not row:
         evidence = f"[CSV] {disease} 데이터 없음"
     else:
@@ -178,23 +111,8 @@ def _route_after_web(state: AgentState):
     return "reporter" if state.get("web_sufficient") else "rag_agent"
 
 
-def _simple_retrieve(query: str, k: int = 2):
-    """작은 데모용 RAG 검색기: 토큰 겹침 점수 + 약한 도메인 힌트."""
-    tokens = set(re.findall(r"[가-힣A-Za-z0-9]+", query))
-    scored = []
-    for doc in INTERNAL_DOCS:
-        doc_text = doc["title"] + " " + doc["content"]
-        doc_tokens = set(re.findall(r"[가-힣A-Za-z0-9]+", doc_text))
-        score = len(tokens & doc_tokens)
-        if "혈압" in query and "고혈압" in doc["title"]:
-            score += 3
-        scored.append((score, doc))
-    scored.sort(key=lambda x: x[0], reverse=True)
-    return [doc for score, doc in scored[:k] if score > 0]
-
-
 def _rag_agent(state: AgentState):
-    docs = _simple_retrieve(state["question"], k=2)
+    docs = repository.retrieve_internal_docs(state["question"], k=2)
     if not docs:
         evidence = "[RAG] 관련 내부 문서를 찾지 못했습니다."
     else:

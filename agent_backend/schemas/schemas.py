@@ -46,30 +46,7 @@ class RunIn(BaseModel):
     input: dict = {"question": "감기 걸렸을 때 어떻게 해야 해?", "context": "", "answer": ""}
 
 
-# ---- 세션 2 REST (구 session_2_agent_server 이관) ----
-class TopicIn(BaseModel):
-    topic: str = "LangGraph"
-
-
-class QuestionIn(BaseModel):
-    question: str = "Tool과 Agent의 차이를 알려줘"
-
-
-class ReviewIn(BaseModel):
-    review: str = "배송도 빠르고 품질도 좋아서 만족합니다."
-
-
-class TextIn(BaseModel):
-    text: str = "LangGraph는 State를 중심으로 노드와 엣지를 연결해 에이전트 워크플로우를 구성한다."
-
-
-class TextResult(BaseModel):
-    """단순 문자열 결과 (2-2 explain, 2-3 chat)."""
-    result: str
-
-
-class DictResult(BaseModel):
-    """구조화된 dict 결과 (2-4 sentiment, 2-5 analyze)."""
-    result: dict
-
-# 데이트 코스 미니 프로젝트 스키마는 agent_backend/date_planner/schemas.py 로 분리됨.
+# 이 파일은 그래프 뷰어 프레임워크(api/graphs.py) 전용 DTO만 둔다.
+# 기능별 요청/응답 DTO 는 각 모듈로 분리됨:
+#   - 챕터2 LCEL REST : api/chapter2/dto.py (TopicIn, QuestionIn, TextResult ...)
+#   - 데이트 플래너    : api/date_planner/dto.py (DatePlanIn, DatePlanOut ...)

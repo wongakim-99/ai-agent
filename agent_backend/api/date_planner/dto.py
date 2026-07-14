@@ -1,7 +1,7 @@
 """
-date_planner 전용 pydantic 모델 — REST 입출력 데이터 형태.
+date_planner DTO — REST 입출력 pydantic 모델.
 
-챕터 스키마(agent_backend/schemas/schemas.py)와 분리해 이 프로젝트 안에 둔다.
+챕터 스키마(agent_backend/schemas/schemas.py)와 분리해 이 기능 모듈 안에 둔다.
 /docs 스키마 문서도 여기서 자동 생성된다.
 """
 from __future__ import annotations

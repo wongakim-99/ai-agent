@@ -1,10 +1,10 @@
 """
-데이트 코스 플래너 그래프 — LLM + 실제 장소 기반 Multi-Agent System.
+데이트 코스 플래너 서비스 계층 — LLM + 실제 장소 기반 Multi-Agent System 그래프.
 
 흐름:
     planner (LLM: 지역·의도 파싱 + 검색할 카테고리/키워드 결정)
       ├─ restaurant_agent ┐
-      ├─ cafe_agent       ├─ (병렬) 장소 실검색 (places.search_places)
+      ├─ cafe_agent       ├─ (병렬) 장소 실검색 (repository.search_places)
       └─ activity_agent   ┘
                           ▼
                        curator (LLM: 실제 후보로 순서 있는 코스 큐레이션)
@@ -16,7 +16,7 @@
   - curator LLM 은 place_id + 시간대 + 이유만 만들고, 장소 사실정보(이름/좌표/주소)는
     코드가 실제 검색 결과에서 조인한다.
 
-같은 그래프가 `POST /api/date/plan`(제품용)과 토폴로지 뷰어 `5-1`(SSE) 둘 다에서 재사용된다.
+같은 그래프가 `POST /api/date/plan`(제품용, controller.py)과 토폴로지 뷰어 `5-1`(SSE) 둘 다에서 재사용된다.
 """
 from __future__ import annotations
 
@@ -29,8 +29,7 @@ from langgraph.graph import StateGraph, START, END
 
 from agent_backend.common.registry import GraphSpec, register
 from agent_backend.common.llm import get_llm
-from agent_backend.api.date_planner.providers import DEFAULT_KEYWORDS
-from agent_backend.api.date_planner.places import search_places
+from agent_backend.api.date_planner.repository import DEFAULT_KEYWORDS, search_places
 
 
 # =========================================================

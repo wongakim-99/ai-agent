@@ -1,10 +1,12 @@
 """
-챕터 2 — LCEL 조각들 (invoke / prompt|llm|parser / chat / json / parallel).
+챕터 2 서비스 계층 — LCEL 조각들 (invoke / prompt|llm|parser / chat / json / parallel).
 노트북 2-1 ~ 2-5 를 그대로 옮겨 러너블 빌더로 만들고 레지스트리에 등록한다.
 
 LCEL 러너블도 .get_graph() 로 토폴로지가 나오지만 노드 id가 매 빌드마다 UUID라
 불안정하다. 그래서 여기서는 '모양(lcel_shape)'만 선언하고, 안정적인 토폴로지/실행
 매핑은 common/topology.py, common/streaming.py 가 그 모양을 보고 생성한다.
+
+controller.py(REST)가 이 빌더들을 재사용한다.
 """
 from __future__ import annotations
 
