@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>데이트 코스 플래너</title>
+    <script>
+      // FOUC 방지: React 렌더 전에 저장값(또는 시스템)으로 data-theme 을 선세팅.
+      // (토폴로지 뷰어와 같은 "viewer-theme" 키를 공유해 테마가 두 페이지에 함께 적용된다)
+      (function () {
+        var s = localStorage.getItem("viewer-theme");
+        var dark = s ? s === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/date/main.tsx"></script>
+  </body>
+</html>
