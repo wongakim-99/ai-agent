@@ -53,6 +53,25 @@ body {
 .app__logo { color: var(--accent); }
 .app__sub { font-size: 12px; font-weight: 400; color: var(--text-dim); }
 
+/* 헤더 우측 액션 묶음 (이동 링크 + 테마 토글) — 토폴로지/데이트 페이지 공용 */
+.header-actions { display: flex; align-items: center; gap: 10px; }
+/* 두 페이지(토폴로지 ↔ 데이트 플래너) 사이 이동 링크 */
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.nav-link:hover { color: var(--text); border-color: var(--accent); }
+
 /* 테마 토글 버튼 */
 .theme-toggle {
   border: 1px solid var(--border);
