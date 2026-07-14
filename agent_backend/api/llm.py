@@ -9,7 +9,7 @@ from fastapi import APIRouter
 
 from agent_backend.schemas import schemas
 from agent_backend.common.logging_config import get_logger
-from agent_backend.chapters.ch2 import (
+from agent_backend.api.chapters.ch2 import (
     build_explain,
     build_chat,
     build_sentiment,

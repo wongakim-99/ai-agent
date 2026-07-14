@@ -1,10 +1,10 @@
 """
-챕터 5 — 데이트 코스 플래너 (LLM + 실제 장소 기반 Multi-Agent System).
+데이트 코스 플래너 그래프 — LLM + 실제 장소 기반 Multi-Agent System.
 
 흐름:
     planner (LLM: 지역·의도 파싱 + 검색할 카테고리/키워드 결정)
       ├─ restaurant_agent ┐
-      ├─ cafe_agent       ├─ (병렬) Kakao Local 실검색
+      ├─ cafe_agent       ├─ (병렬) 장소 실검색 (places.search_places)
       └─ activity_agent   ┘
                           ▼
                        curator (LLM: 실제 후보로 순서 있는 코스 큐레이션)
@@ -12,7 +12,7 @@
 챕터4의 로컬 우선 MAS 구조(router → 병렬 fan-out → reporter 합류)를 데이트 도메인으로 옮긴 것.
 다른 점:
   - 라우팅/큐레이션에 실제 LLM 을 쓴다 (OPENAI_API_KEY 필요).
-  - 장소는 Kakao Local API 에서 실제로 가져온다 (환각 방지).
+  - 장소는 큐레이션 데이터셋(카카오 승인 시 라이브)에서 실제로 가져온다 (환각 방지).
   - curator LLM 은 place_id + 시간대 + 이유만 만들고, 장소 사실정보(이름/좌표/주소)는
     코드가 실제 검색 결과에서 조인한다.
 
@@ -29,8 +29,8 @@ from langgraph.graph import StateGraph, START, END
 
 from agent_backend.common.registry import GraphSpec, register
 from agent_backend.common.llm import get_llm
-from agent_backend.common.kakao import DEFAULT_KEYWORDS
-from agent_backend.common.places import search_places
+from agent_backend.api.date_planner.providers import DEFAULT_KEYWORDS
+from agent_backend.api.date_planner.places import search_places
 
 
 # =========================================================
@@ -142,7 +142,7 @@ def _route_after_planner(state: DateState):
 
 
 # =========================================================
-# 검색 에이전트 (노트북 4-4) — 병렬, 각자 Kakao 실검색
+# 검색 에이전트 (노트북 4-4) — 병렬, 각자 실검색
 # =========================================================
 def _search_agent(state: DateState, category: str, node_name: str):
     region = state.get("region", "서울")
@@ -271,14 +271,14 @@ def build_date_course():
 
 
 # =========================================================
-# 레지스트리 등록
+# 레지스트리 등록 (보너스: 학습 토폴로지 뷰어에 5-1 로 노출)
 # =========================================================
 register(GraphSpec(
     id="5-1", chapter=5, kind="langgraph",
     title="5-1 데이트 코스 플래너: planner → 병렬 검색 → curator",
     concept=(
         "planner(LLM)가 지역·의도를 파싱해 검색 에이전트를 병렬 fan-out하고, 각 에이전트가 "
-        "Kakao 로컬에서 실제 장소를 가져오면 curator(LLM)가 순서 있는 코스로 큐레이션한다."
+        "실제 장소를 가져오면 curator(LLM)가 순서 있는 코스로 큐레이션한다."
     ),
     build=build_date_course,
     input_example={
@@ -293,9 +293,9 @@ register(GraphSpec(
     },
     node_docs={
         "planner": "요청에서 지역·분위기를 파악하고 어떤 카테고리(맛집/카페/활동)를 검색할지 정하는 라우터입니다. 여기서 병렬 경로가 갈립니다.",
-        "restaurant_agent": "Kakao 로컬에서 맛집을 검색합니다. 다른 검색 에이전트와 같은 superstep에서 병렬로 실행됩니다.",
-        "cafe_agent": "Kakao 로컬에서 카페를 검색합니다. 병렬 일꾼입니다.",
-        "activity_agent": "Kakao 로컬에서 볼거리·활동(전시/영화관 등)을 검색합니다.",
+        "restaurant_agent": "맛집을 검색합니다. 다른 검색 에이전트와 같은 superstep에서 병렬로 실행됩니다.",
+        "cafe_agent": "카페를 검색합니다. 병렬 일꾼입니다.",
+        "activity_agent": "볼거리·활동(전시/영화관 등)을 검색합니다.",
         "curator": "모든 검색 결과가 합류하는 종착점입니다. 실제 장소들만으로 시간 순서가 있는 데이트 코스를 큐레이션합니다.",
     },
     edge_labels={

@@ -1,8 +1,8 @@
 """
-챕터 5 — 데이트 코스 플래너 REST 라우터 (제품용, 비-SSE).
+데이트 코스 플래너 REST 라우터 (제품용, 비-SSE).
 
-  - GET  /api/date/config : 프론트 지도 SDK용 Kakao JavaScript 키 전달
-  - POST /api/date/plan   : ch5 그래프를 실행해 코스 결과(JSON)를 한 번에 반환
+  - GET  /api/date/config : 프론트 지도 SDK용 네이버 지도 Client ID 전달
+  - POST /api/date/plan   : 그래프를 실행해 코스 결과(JSON)를 한 번에 반환
 
 토폴로지 뷰어의 /graphs/5-1/run(SSE)과 "같은 그래프"를 쓰지만, 여기서는 최종 결과만 준다.
 그래프는 매번 fresh 가 필요 없어 lru_cache 로 재사용한다 (api/llm.py 패턴).
@@ -12,9 +12,9 @@ import os
 
 from fastapi import APIRouter
 
-from agent_backend.schemas import schemas
+from agent_backend.api.date_planner import schemas
+from agent_backend.api.date_planner.graph import build_date_course
 from agent_backend.common.logging_config import get_logger
-from agent_backend.chapters.ch5 import build_date_course
 
 router = APIRouter(prefix="/api/date", tags=["date (코스 플래너)"])
 logger = get_logger(__name__)

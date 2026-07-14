@@ -1,5 +1,5 @@
 """
-큐레이션 장소 데이터셋 + 통합 검색 (챕터5 데이트 코스 에이전트용).
+큐레이션 장소 데이터셋 + 통합 검색 (데이트 코스 에이전트용).
 
 외부 실시간 API(카카오/네이버/구글)는 전부 결제·심사 벽이 있어서, 실습/데모용으로는
 "실제 서울 장소를 미리 조사해 코드에 넣어두는" 큐레이션 데이터셋을 기본값으로 쓴다.
@@ -8,7 +8,7 @@
 핵심: `search_places()` 는 카카오 키가 있고 실제 응답이 오면 그걸 쓰고(라이브),
 없거나 실패하면 데이터셋으로 폴백한다. → 카카오 심사가 통과되면 코드 수정 없이 자동 라이브.
 
-주의: 지도는 무료 OpenStreetMap 을 쓰므로 좌표는 WGS84 위경도(lat/lng)면 된다.
+주의: 지도는 네이버 지도를 쓰므로 좌표는 WGS84 위경도(lat/lng)면 된다.
       장소 dict 는 원시값만 담는다(streaming._jsonify 안전).
 """
 from __future__ import annotations
@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 from urllib.parse import quote
 
-from agent_backend.common.kakao import kakao_search, DEFAULT_KEYWORDS  # noqa: F401 (DEFAULT_KEYWORDS 재노출)
+from agent_backend.api.date_planner.providers import kakao_search
 
 
 # =========================================================

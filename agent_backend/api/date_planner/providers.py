@@ -1,10 +1,10 @@
 """
-Kakao Local API 클라이언트 — 실제 장소 검색(맛집/카페/활동).
+라이브 검색 provider — Kakao Local API 클라이언트 (실제 장소 검색).
 
-챕터5 데이트 코스 에이전트의 검색 에이전트들이 이걸 호출한다.
+places.search_places() 가 이걸 먼저 시도하고, 키가 없거나 실패하면
+큐레이션 데이터셋(places.DATASET)으로 폴백한다.
   - KAKAO_REST_API_KEY 가 있으면 실제 Kakao Local 키워드 검색.
-  - 키가 없거나 호출이 실패하면 mock 장소로 graceful degrade
-    (오프라인/무키에서도 지도·코스가 렌더되도록).
+  - 키가 없거나 미승인(403)/네트워크 오류면 빈 리스트를 반환(예외 안 던짐).
 
 주의(좌표 축):
   Kakao 응답의 x = 경도(longitude), y = 위도(latitude) 이고 둘 다 "문자열"이다.
@@ -33,7 +33,7 @@ def kakao_search(region: str, keyword: str, category: str, size: int = 8) -> lis
     """`{region} {keyword}` 로 Kakao Local 키워드 검색 → 원시 장소 dict 리스트.
 
     실패/무키/미승인(403) 시 예외를 던지지 않고 빈 리스트를 반환한다.
-    (호출부 common/places.search_places 가 빈 리스트면 큐레이션 데이터셋으로 폴백)
+    (호출부 date_planner.places.search_places 가 빈 리스트면 큐레이션 데이터셋으로 폴백)
     스트리밍 계층에 타임아웃이 없으므로 여기서 반드시 timeout 을 건다.
     """
     query = f"{region} {keyword}".strip()

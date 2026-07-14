@@ -33,8 +33,8 @@ from agent_backend.common.registry import GraphSpec, register
 # 로컬 데이터 (노트북 4-0) — repo 루트 기준으로 앵커
 # =========================================================
 # 백엔드는 실행 디렉터리에 의존하면 안 되므로 Path.cwd() 대신 __file__ 로 앵커한다.
-# chapters/ch4.py → parents[0]=chapters, [1]=agent_backend, [2]=repo 루트
-REPO_ROOT = Path(__file__).resolve().parents[2]
+# api/chapters/ch4.py → parents[0]=chapters, [1]=api, [2]=agent_backend, [3]=repo 루트
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DB_PATH = REPO_ROOT / "disease.db"
 CSV_PATH = REPO_ROOT / "disease_info.csv"
 

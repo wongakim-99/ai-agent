@@ -1,10 +1,11 @@
 """
 FastAPI 진입점: 앱을 만들고 라우터를 등록한다.
 
-통합 백엔드: 챕터별 학습 결과물이 전부 여기에 모인다.
-  - api/llm.py    : 세션 2 — LCEL 체인을 REST API 로 (/explain /chat /sentiment /analyze)
-  - api/graphs.py : 세션 3 — 그래프 토폴로지 + 실행 SSE (/graphs...)
-  - chapters/     : 챕터별 그래프/체인 정의 (ch2, ch3, 이후 ch4...)
+통합 백엔드: 챕터별 학습 결과물 + 미니 프로젝트가 여기에 모인다.
+  - api/llm.py     : 세션 2 — LCEL 체인을 REST API 로 (/explain /chat /sentiment /analyze)
+  - api/graphs.py  : 세션 3 — 그래프 토폴로지 + 실행 SSE (/graphs...)
+  - api/chapters/     : 챕터별 그래프/체인 정의 (ch2, ch3, ch4)
+  - api/date_planner/ : 데이트 코스 AI Agent 미니 프로젝트 (/api/date/*, 토폴로지 5-1)
 
 실행 (레포 루트에서):
     uvicorn agent_backend.main:app --reload
@@ -23,7 +24,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from agent_backend.common.logging_config import setup_logging, get_logger
-from agent_backend.api import health, llm, graphs, date
+from agent_backend.api import health, llm, graphs
+from agent_backend.api.date_planner.router import router as date_router
 
 setup_logging()
 logger = get_logger("app")
@@ -64,4 +66,4 @@ async def log_requests(request: Request, call_next):
 app.include_router(health.router)
 app.include_router(llm.router)
 app.include_router(graphs.router)
-app.include_router(date.router)
+app.include_router(date_router)  # date_planner 미니 프로젝트 (/api/date/*)
