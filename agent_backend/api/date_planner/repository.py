@@ -7,6 +7,7 @@ date_planner 데이터 접근 계층 (repository) — 장소 검색.
 
 `search_places()` 는 카카오 라이브가 되면 그걸, 아니면 데이터셋으로 폴백한다.
 → 카카오 심사가 통과돼 키가 실제로 동작하면 코드 수정 없이 자동 라이브 전환.
+어느 소스가 쓰였는지 호출부(진행 상황 스트리밍)가 알아야 해서 `search_places_with_source()` 가 함께 반환한다.
 
 주의(좌표 축): Kakao 응답의 x=경도, y=위도 (둘 다 문자열) → lat=float(y), lng=float(x).
 장소 dict 는 원시값(str/float)만 담는다(common/streaming._jsonify 안전).
@@ -166,13 +167,28 @@ def _dataset_to_place(p: dict) -> dict:
 # =========================================================
 # 통합 검색 — 라이브 우선, 실패 시 데이터셋 폴백
 # =========================================================
-def search_places(region: str, keyword: str, category: str, size: int = 8) -> list[dict]:
-    """카카오 라이브가 되면 그걸, 아니면 큐레이션 데이터셋을 쓴다.
+# 소스 식별자 → 사람이 읽는 라벨 (진행 상황 스트리밍의 근거 문장에 쓰인다)
+SOURCE_LABEL = {
+    "kakao": "카카오 로컬 라이브 검색",
+    "curated": "큐레이션 데이터셋 (카카오 키 없음/미승인 → 폴백)",
+}
+
+
+def search_places_with_source(
+    region: str, keyword: str, category: str, size: int = 8
+) -> tuple[list[dict], str]:
+    """장소 목록과 그 출처("kakao" | "curated")를 함께 반환한다.
 
     → 카카오맵 심사가 통과돼 KAKAO_REST_API_KEY 가 실제로 동작하면 코드 수정 없이 자동 라이브 전환.
     """
     if os.environ.get("KAKAO_REST_API_KEY"):
         live = kakao_search(region=region, keyword=keyword, category=category, size=size)
         if live:  # 승인 전에는 403 → [] 이므로 아래 데이터셋으로 폴백
-            return live
-    return curated_search(region, keyword, category, size)
+            return live, "kakao"
+    return curated_search(region, keyword, category, size), "curated"
+
+
+def search_places(region: str, keyword: str, category: str, size: int = 8) -> list[dict]:
+    """장소 목록만 필요할 때 쓰는 얇은 래퍼."""
+    places, _ = search_places_with_source(region, keyword, category, size)
+    return places

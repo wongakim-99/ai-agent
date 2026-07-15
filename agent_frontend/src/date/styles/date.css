@@ -24,7 +24,6 @@
   font-weight: 600;
   font-size: var(--fs-lg);
 }
-.date__logo { color: var(--danger); }
 .date__sub { font-size: var(--fs-sm); color: var(--text-dim); font-weight: 400; }
 
 /* 본문: 왼쪽 지도 + 오른쪽 채팅 */
@@ -152,6 +151,71 @@
   cursor: pointer;
 }
 .chat__send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ===== 에이전트 진행 상황 (실행 중 실시간 + 완료 후 기록) ===== */
+.steps { display: flex; flex-direction: column; gap: var(--space-2); }
+/* 코스가 뒤따르면 구분선으로 "과정 → 결과" 를 나눈다 */
+.steps:not(:last-child) {
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px dashed var(--border);
+}
+.steps__item {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+  border-left: 2px solid var(--border);
+  animation: steps-in 0.25s ease-out;
+}
+@keyframes steps-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .steps__item { animation: none; }
+}
+/* 노드 종류별 색 — 토폴로지 뷰어의 node_types 색 규칙과 맞춘다 */
+.steps__item--planner { border-left-color: var(--accent); }
+.steps__item--search { border-left-color: var(--run); }
+.steps__item--curator { border-left-color: var(--done); }
+.steps__item--pending { border-left-color: var(--border); }
+.steps__icon { flex: none; font-size: var(--fs-sm); line-height: 1.4; }
+.steps__body { flex: 1; min-width: 0; }
+.steps__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.steps__title--pending { color: var(--text-dim); font-weight: 400; font-style: italic; }
+.steps__node {
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--text-dim);
+  font-family: ui-monospace, monospace;
+}
+.steps__lines {
+  list-style: none;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  line-height: 1.5;
+  word-break: break-word;
+}
+/* "생각 중" 점 3개 */
+.steps__dots { display: inline-flex; gap: 3px; }
+.steps__dots::before { content: "●●●"; letter-spacing: 2px; animation: steps-blink 1.2s ease-in-out infinite; }
+@keyframes steps-blink {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.9; }
+}
 
 /* ===== 코스 목록 (채팅 AI 버블 안에서 재사용) ===== */
 .cl { padding: var(--space-4); }

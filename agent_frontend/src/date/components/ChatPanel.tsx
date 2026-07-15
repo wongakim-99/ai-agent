@@ -1,28 +1,32 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { AgentSteps } from "./AgentSteps";
 import { CourseList } from "./CourseList";
-import type { ChatMessage } from "../types";
+import type { ChatMessage, DateStep } from "../types";
 
 interface Props {
   messages: ChatMessage[];
   loading: boolean;
+  /** 실행 중인 요청의 진행 상황 (완료되면 마지막 메시지의 result.steps 로 넘어간다) */
+  liveSteps: DateStep[];
   onSend: (text: string) => void;
 }
 
+// 샘플 질의 — planner 가 지역/카테고리를 뽑을 수 있게 '지역 + 조건' 형태를 유지한다.
 const EXAMPLES = [
-  "홍대에서 조용한 저녁 데이트 코스 짜줘, 카페 좋아해",
-  "성수에서 전시 보고 저녁도 먹는 데이트",
-  "강남에서 가볍게 커피 마시는 낮 데이트",
+  "홍대 저녁 식사 · 조용한 카페 동선",
+  "성수 전시 관람 후 식사 동선",
+  "강남 카페 중심 오후 동선",
 ];
 
-export function ChatPanel({ messages, loading, onSend }: Props) {
+export function ChatPanel({ messages, loading, liveSteps, onSend }: Props) {
   const [value, setValue] = useState("");
   const logRef = useRef<HTMLDivElement>(null);
 
-  // 새 메시지/로딩 상태에서 맨 아래로 스크롤
+  // 새 메시지/진행 상황이 붙을 때마다 맨 아래로 스크롤
   useEffect(() => {
     const el = logRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, liveSteps]);
 
   const submit = () => {
     const t = value.trim();
@@ -44,9 +48,9 @@ export function ChatPanel({ messages, loading, onSend }: Props) {
       <div className="chat__log" ref={logRef}>
         {messages.length === 0 && (
           <div className="chat__welcome">
-            <div className="chat__welcome-title">어디로 데이트 갈까요? 💕</div>
+            <div className="chat__welcome-title">질의를 입력해 파이프라인을 실행하세요</div>
             <div className="chat__welcome-sub">
-              지역과 분위기를 말해주면 실제 장소로 코스를 짜드려요.
+              지역과 조건을 자연어로 넣으면 노드별 실행 근거와 추천 결과를 보여줍니다.
             </div>
             <div className="chat__examples">
               {EXAMPLES.map((ex) => (
@@ -66,6 +70,7 @@ export function ChatPanel({ messages, loading, onSend }: Props) {
           ) : (
             <div key={m.id} className="msg msg--ai">
               <div className="msg__bubble msg__bubble--ai">
+                <AgentSteps steps={m.result.steps} />
                 <CourseList
                   region={m.result.region}
                   summary={m.result.summary}
@@ -78,7 +83,9 @@ export function ChatPanel({ messages, loading, onSend }: Props) {
 
         {loading && (
           <div className="msg msg--ai">
-            <div className="msg__bubble msg__bubble--ai chat__typing">코스 짜는 중…</div>
+            <div className="msg__bubble msg__bubble--ai">
+              <AgentSteps steps={liveSteps} running />
+            </div>
           </div>
         )}
       </div>
@@ -86,7 +93,7 @@ export function ChatPanel({ messages, loading, onSend }: Props) {
       <div className="chat__input">
         <textarea
           className="chat__textarea"
-          placeholder="예: 홍대에서 조용한 저녁 데이트 (Enter 전송)"
+          placeholder="예: 홍대 저녁 식사 · 카페 동선 (Enter 실행)"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKey}

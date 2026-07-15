@@ -4,8 +4,8 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { useTheme } from "../hooks/useTheme";
 import { CourseMap } from "./components/CourseMap";
 import { ChatPanel } from "./components/ChatPanel";
-import { getDateConfig, planDate } from "./api/client";
-import type { ChatMessage, MapPlace } from "./types";
+import { getDateConfig, planDateStream } from "./api/client";
+import type { ChatMessage, DateStep, MapPlace } from "./types";
 
 export default function DateApp() {
   const { theme, toggle } = useTheme();
@@ -14,6 +14,8 @@ export default function DateApp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [places, setPlaces] = useState<MapPlace[]>([]);
+  // 실행 중에만 쓰는 진행 상황. 끝나면 결과(result.steps)로 옮겨가 메시지에 남는다.
+  const [liveSteps, setLiveSteps] = useState<DateStep[]>([]);
   const idRef = useRef(0);
 
   // 네이버 지도 Client ID 를 백엔드에서 받아온다
@@ -27,21 +29,27 @@ export default function DateApp() {
     setMessages((prev) => [...prev, { id: (idRef.current += 1), role: "user", text }]);
     setLoading(true);
     setError(null);
-    planDate(text)
+    setLiveSteps([]);
+    planDateStream(text, (e) => {
+      if (e.type === "step") setLiveSteps((prev) => [...prev, e.step]);
+    })
       .then((result) => {
         setMessages((prev) => [...prev, { id: (idRef.current += 1), role: "assistant", result }]);
         setPlaces(result.places); // 지도는 가장 최근 추천의 장소로 갱신
       })
       .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setLiveSteps([]); // 완료된 과정은 방금 추가된 메시지가 result.steps 로 들고 있다
+      });
   };
 
   return (
     <div className="date">
       <header className="date__header">
         <div className="date__title">
-          <span className="date__logo">❤</span> 데이트 코스 플래너
-          <span className="date__sub">AI와 대화하며 실제 장소로 코스를 짜보세요</span>
+          POI 추천 파이프라인
+          <span className="date__sub">LangGraph 멀티에이전트 · 내부 테스트 콘솔</span>
         </div>
         <div className="header-actions">
           <a className="nav-link" href="/index.html">◈ 토폴로지 뷰어 →</a>
@@ -56,7 +64,7 @@ export default function DateApp() {
           <CourseMap clientId={clientId} places={places} />
         </section>
         <section className="date__chat">
-          <ChatPanel messages={messages} loading={loading} onSend={onSend} />
+          <ChatPanel messages={messages} loading={loading} liveSteps={liveSteps} onSend={onSend} />
         </section>
       </div>
     </div>

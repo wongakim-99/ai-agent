@@ -14,7 +14,7 @@ FastAPI 진입점: 앱을 만들고 라우터를 등록한다.
 문서:
     http://127.0.0.1:8000/docs
 프론트엔드(dev):
-    cd agent_frontend && npm run dev   # http://localhost:5173
+    cd agent_frontend && npm run dev   # http://localhost:5174
 """
 from dotenv import load_dotenv
 load_dotenv()  # 레포 루트 .env 의 OPENAI_API_KEY 를 chapters import 전에 읽는다.
@@ -42,11 +42,11 @@ app = FastAPI(
     version="0.2.0",
 )
 
-# 프론트(Vite dev, 5173)에서 백엔드(8000)로 직접 호출할 때를 위한 CORS.
+# 프론트(Vite dev, 5174 고정 — vite.config.ts strictPort)에서 백엔드(8000)로 직접 호출할 때를 위한 CORS.
 # (Vite proxy 를 쓰면 same-origin 이지만, 직접 curl/비프록시 테스트를 위해 열어둔다)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["http://localhost:5174", "http://127.0.0.1:5174"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -4,8 +4,6 @@
 """
 from __future__ import annotations
 
-import json
-
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
@@ -13,15 +11,10 @@ from agent_backend.schemas import schemas
 from agent_backend.common.logging_config import get_logger
 from agent_backend.common.registry import list_specs, get_spec
 from agent_backend.common.topology import build_topology
-from agent_backend.common.streaming import run_events
+from agent_backend.common.streaming import run_events, sse_frame as _sse
 
 router = APIRouter(tags=["graphs"])
 logger = get_logger(__name__)
-
-
-def _sse(event: dict) -> str:
-    """이벤트 dict → SSE 프레임 (data: 한 줄, \\n\\n 종단)."""
-    return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
 
 @router.get("/graphs", response_model=list[schemas.GraphSummary])

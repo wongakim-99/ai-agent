@@ -14,11 +14,20 @@ api/graphs.py 가 이걸 SSE 프레임으로 감싸 브라우저로 흘린다.
 """
 from __future__ import annotations
 
+import json
 from typing import Any, AsyncIterator
 
 from langchain_core.messages import BaseMessage
 
 from agent_backend.common.topology import build_topology
+
+
+def sse_frame(event: dict) -> str:
+    """이벤트 dict → SSE 프레임 (data: 한 줄, \\n\\n 종단).
+
+    api/graphs.py(뷰어)와 api/date_planner/controller.py(제품용) 양쪽이 쓴다.
+    """
+    return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
 
 # ---------------------------------------------------------

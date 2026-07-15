@@ -17,6 +17,10 @@
     코드가 실제 검색 결과에서 조인한다.
 
 같은 그래프가 `POST /api/date/plan`(제품용, controller.py)과 토폴로지 뷰어 `5-1`(SSE) 둘 다에서 재사용된다.
+
+각 노드는 결과뿐 아니라 `steps` 에 "무엇을 왜 결정했는지"를 한 조각씩 남긴다.
+컨트롤러가 이걸 SSE 로 흘려서 채팅 UI 가 에이전트의 진행 상황을 실시간으로 보여준다.
+근거 문장은 코드가 실제 값으로 조립하므로(LLM 재호출 없음) 비용이 들지 않고 항상 사실과 일치한다.
 """
 from __future__ import annotations
 
@@ -29,7 +33,11 @@ from langgraph.graph import StateGraph, START, END
 
 from agent_backend.common.registry import GraphSpec, register
 from agent_backend.common.llm import get_llm
-from agent_backend.api.date_planner.repository import DEFAULT_KEYWORDS, search_places
+from agent_backend.api.date_planner.repository import (
+    DEFAULT_KEYWORDS,
+    SOURCE_LABEL,
+    search_places_with_source,
+)
 
 
 # =========================================================
@@ -45,6 +53,7 @@ class DateState(TypedDict, total=False):
     places: Annotated[list[dict], operator.add]
     searched: Annotated[list[str], operator.add]
     trace: Annotated[list[str], operator.add]
+    steps: Annotated[list[dict], operator.add]   # 노드별 진행/근거 (UI 스트리밍용)
     summary: str                           # curator 작성
     course: list[dict]                     # curator 작성 (순서 있는 코스)
 
@@ -79,11 +88,23 @@ _AGENT_BY_CATEGORY = {
     "cafe": "cafe_agent",
     "activity": "activity_agent",
 }
+_CATEGORY_LABEL = {"restaurant": "맛집", "cafe": "카페", "activity": "활동"}
 # 지역 파싱 규칙 기반 폴백용 (LLM 이 지역을 못 뽑을 때만 사용)
 _KNOWN_REGIONS = [
     "홍대", "강남", "성수", "이태원", "연남", "합정", "건대",
     "신촌", "여의도", "종로", "명동", "잠실", "가로수길", "삼청동",
 ]
+
+
+# =========================================================
+# 진행 상황 조각 (steps)
+# =========================================================
+def _step(node: str, kind: str, title: str, lines: list[str]) -> dict:
+    """UI 가 그대로 그릴 수 있는 진행 조각. kind 는 아이콘/색 선택에만 쓰인다.
+
+    원시값만 담는다 (common/streaming._jsonify 와 SSE 직렬화 양쪽에 안전).
+    """
+    return {"node": node, "kind": kind, "title": title, "lines": lines}
 
 
 # =========================================================
@@ -107,7 +128,8 @@ def _planner_node(state: DateState):
     )
 
     region = parsed.region.strip()
-    if not region:  # LLM 이 지역을 못 뽑으면 규칙 기반 폴백
+    region_by_rule = not region
+    if region_by_rule:  # LLM 이 지역을 못 뽑으면 규칙 기반 폴백
         region = next((r for r in _KNOWN_REGIONS if r in question), "서울")
 
     plan: dict = {}
@@ -117,22 +139,44 @@ def _planner_node(state: DateState):
         plan["cafe"] = parsed.cafe_keyword.strip()
     if parsed.activity_keyword.strip():
         plan["activity"] = parsed.activity_keyword.strip()
-    if not plan:  # 아무 카테고리도 안 잡히면 기본 데이트 코스(식사+카페)
+    plan_by_default = not plan
+    if plan_by_default:  # 아무 카테고리도 안 잡히면 기본 데이트 코스(식사+카페)
         plan = {
             "restaurant": DEFAULT_KEYWORDS["restaurant"],
             "cafe": DEFAULT_KEYWORDS["cafe"],
         }
 
     agents_to_run = [_AGENT_BY_CATEGORY[c] for c in plan]
+    intent = parsed.intent.strip() or "장소 추천"
 
     return {
         "question": question,
         "region": region,
-        "intent": parsed.intent.strip() or "데이트 코스",
+        "intent": intent,
         "plan": plan,
         "agents_to_run": agents_to_run,
         "trace": ["planner"],
+        "steps": [_planner_step(region, region_by_rule, intent, plan, plan_by_default, agents_to_run)],
     }
+
+
+def _planner_step(
+    region: str, region_by_rule: bool, intent: str,
+    plan: dict, plan_by_default: bool, agents_to_run: list[str],
+) -> dict:
+    """planner 가 무엇을 어떻게 정했는지 — 지역·의도·검색 계획·분기."""
+    lines = [
+        f"지역: {region}" + (" (LLM이 못 뽑아 요청 문장에서 규칙으로 찾음)" if region_by_rule else ""),
+        f"의도: {intent}",
+    ]
+    lines += [
+        f"{_CATEGORY_LABEL[cat]} 검색어 → '{kw}'"
+        for cat, kw in plan.items()
+    ]
+    if plan_by_default:
+        lines.append("카테고리를 하나도 못 잡아 기본 코스(식사+카페)로 되돌림")
+    lines.append(f"→ {', '.join(agents_to_run)} {len(agents_to_run)}개를 병렬로 실행")
+    return _step("planner", "planner", "요청 분석 · 검색 계획 결정", lines)
 
 
 def _route_after_planner(state: DateState):
@@ -146,8 +190,22 @@ def _route_after_planner(state: DateState):
 def _search_agent(state: DateState, category: str, node_name: str):
     region = state.get("region", "서울")
     keyword = state.get("plan", {}).get(category) or DEFAULT_KEYWORDS[category]
-    places = search_places(region=region, keyword=keyword, category=category, size=8)
-    return {"places": places, "searched": [node_name], "trace": [node_name]}
+    places, source = search_places_with_source(
+        region=region, keyword=keyword, category=category, size=8
+    )
+
+    lines = [f"'{region} {keyword}' 검색 → {len(places)}곳", f"출처: {SOURCE_LABEL[source]}"]
+    if places:  # 뒤의 curator 가 무엇 중에서 골랐는지 보이도록 후보 이름을 남긴다
+        lines.append("후보: " + ", ".join(p["place_name"] for p in places))
+    else:
+        lines.append("결과 없음 — 이 카테고리는 코스에서 빠집니다")
+
+    return {
+        "places": places,
+        "searched": [node_name],
+        "trace": [node_name],
+        "steps": [_step(node_name, "search", f"{_CATEGORY_LABEL[category]} 검색", lines)],
+    }
 
 
 def _restaurant_agent(state: DateState):
@@ -175,6 +233,7 @@ def _curator_node(state: DateState):
             "summary": "조건에 맞는 장소를 찾지 못했어요. 지역이나 키워드를 바꿔서 다시 시도해 주세요.",
             "course": [],
             "trace": ["curator"],
+            "steps": [_step("curator", "curator", "코스 큐레이션", ["후보 장소가 0곳이라 코스를 만들 수 없음"])],
         }
 
     # 실제 후보를 인덱싱해서 LLM 에 제시 (LLM 은 place_id 만 고른다 → 환각 방지)
@@ -185,6 +244,7 @@ def _curator_node(state: DateState):
     )
 
     llm = get_llm().with_structured_output(CoursePlan)
+    llm_error = ""
     try:
         plan: CoursePlan = llm.invoke(
             "너는 데이트 코스 큐레이터야. 아래 '실제' 후보 장소들 중에서 골라 시간 순서가 있는 "
@@ -193,15 +253,43 @@ def _curator_node(state: DateState):
             f"요청: {question}\n의도: {intent}\n\n후보 목록:\n{catalog}"
         )
         stops, summary = plan.stops, plan.summary
-    except Exception:  # noqa: BLE001 — LLM/파싱 실패 시 결정론적 폴백
-        stops, summary = [], ""
+    except Exception as exc:  # noqa: BLE001 — LLM/파싱 실패 시 결정론적 폴백
+        stops, summary, llm_error = [], "", str(exc)
 
     course = _build_course(stops, places)
-    if not course:  # LLM 이 비었거나 전부 무효 → 카테고리별 1곳 순서 배치
+    used_fallback = not course
+    if used_fallback:  # LLM 이 비었거나 전부 무효 → 카테고리별 1곳 순서 배치
         course = _fallback_course(places)
         summary = summary or f"{state.get('region', '')} 데이트 코스입니다."
 
-    return {"summary": summary, "course": course, "trace": ["curator"]}
+    return {
+        "summary": summary,
+        "course": course,
+        "trace": ["curator"],
+        "steps": [_curator_step(places, stops, course, used_fallback, llm_error)],
+    }
+
+
+def _curator_step(
+    places: list[dict], stops: list, course: list[dict], used_fallback: bool, llm_error: str,
+) -> dict:
+    """curator 가 후보 몇 곳 중 무엇을 왜 골랐는지 — 폴백으로 샌 경우 그 이유까지."""
+    lines = [f"검색 결과 {len(places)}곳이 모두 합류 → 이 중에서만 고름 (없는 장소 지어내기 방지)"]
+    if llm_error:
+        lines.append(f"LLM 큐레이션 실패({llm_error}) → 규칙 기반 코스로 대체")
+    elif used_fallback:
+        dropped = len(stops)
+        lines.append(
+            f"LLM이 고른 {dropped}곳이 전부 무효한 place_id → 규칙 기반 코스로 대체"
+            if dropped else "LLM이 아무 장소도 고르지 않음 → 규칙 기반 코스로 대체"
+        )
+    elif len(stops) > len(course):
+        lines.append(f"LLM이 {len(stops)}곳을 골랐고, 무효/중복 id {len(stops) - len(course)}곳을 걸러냄")
+
+    if used_fallback:
+        lines.append("규칙: 카테고리별 첫 장소를 맛집 → 카페 → 활동 순으로 배치")
+    lines += [f"{c['step']}. {c['place_name']} ({c['time_slot']}) — {c['reason']}" for c in course]
+    return _step("curator", "curator", f"코스 큐레이션 · {len(course)}곳 선정", lines)
 
 
 def _build_course(stops: list, places: list[dict]) -> list[dict]:
@@ -270,21 +358,44 @@ def build_date_course():
 
 
 # =========================================================
+# 그래프 입출력 헬퍼 (controller 의 REST/SSE 양쪽이 공유)
+# =========================================================
+def initial_state(question: str) -> dict:
+    """리듀서가 붙은 키는 빈 리스트로 시작해야 한다 (operator.add 대상)."""
+    return {"question": question, "places": [], "searched": [], "trace": [], "steps": []}
+
+
+def plan_result(final: dict) -> dict:
+    """최종 State → DatePlanOut 모양. 지도 마커는 코스 스텝과 1:1 로 뽑는다."""
+    course = final.get("course", [])
+    return {
+        "region": final.get("region", ""),
+        "summary": final.get("summary", ""),
+        "course": course,
+        "places": [
+            {k: c.get(k) for k in ("place_name", "address", "lat", "lng", "url", "category")}
+            for c in course
+        ],
+        "steps": final.get("steps", []),
+    }
+
+
+# =========================================================
 # 레지스트리 등록 (보너스: 학습 토폴로지 뷰어에 5-1 로 노출)
 # =========================================================
 register(GraphSpec(
     id="5-1", chapter=5, kind="langgraph",
-    title="5-1 데이트 코스 플래너: planner → 병렬 검색 → curator",
+    title="5-1 POI 추천 파이프라인: planner → 병렬 검색 → curator",
     concept=(
         "planner(LLM)가 지역·의도를 파싱해 검색 에이전트를 병렬 fan-out하고, 각 에이전트가 "
-        "실제 장소를 가져오면 curator(LLM)가 순서 있는 코스로 큐레이션한다."
+        "실제 장소를 가져오면 curator(LLM)가 순서 있는 동선으로 큐레이션한다."
     ),
     build=build_date_course,
     input_example={
-        "question": "홍대에서 조용한 저녁 데이트 코스 짜줘, 카페 좋아해",
-        "places": [], "searched": [], "trace": [],
+        "question": "홍대 저녁 식사 · 조용한 카페 동선",
+        "places": [], "searched": [], "trace": [], "steps": [],
     },
-    state_reducers={"places": "append", "searched": "append", "trace": "append"},
+    state_reducers={"places": "append", "searched": "append", "trace": "append", "steps": "append"},
     node_types={
         "planner": "router",
         "restaurant_agent": "agent", "cafe_agent": "agent", "activity_agent": "agent",

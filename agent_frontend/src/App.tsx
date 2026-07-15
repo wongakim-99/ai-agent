@@ -49,7 +49,7 @@ export default function App() {
           <span className="app__sub">배운 그래프를 눈으로</span>
         </div>
         <div className="header-actions">
-          <a className="nav-link" href="/date.html">💕 데이트 플래너 →</a>
+          <a className="nav-link" href="/date.html">POI 파이프라인 →</a>
           <ThemeToggle theme={theme} onToggle={toggle} />
         </div>
       </header>
