@@ -8,6 +8,8 @@ interface Props {
   loading: boolean;
   /** 실행 중인 요청의 진행 상황 (완료되면 마지막 메시지의 result.steps 로 넘어간다) */
   liveSteps: DateStep[];
+  /** 방금 도착해서 타이핑 연출을 할 답변의 id */
+  typingId: number;
   onSend: (text: string) => void;
 }
 
@@ -18,7 +20,7 @@ const EXAMPLES = [
   "강남 카페 중심 오후 동선",
 ];
 
-export function ChatPanel({ messages, loading, liveSteps, onSend }: Props) {
+export function ChatPanel({ messages, loading, liveSteps, typingId, onSend }: Props) {
   const [value, setValue] = useState("");
   const logRef = useRef<HTMLDivElement>(null);
 
@@ -75,6 +77,7 @@ export function ChatPanel({ messages, loading, liveSteps, onSend }: Props) {
                   region={m.result.region}
                   summary={m.result.summary}
                   course={m.result.course}
+                  animate={m.id === typingId}
                 />
               </div>
             </div>

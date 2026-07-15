@@ -4,8 +4,9 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { useTheme } from "../hooks/useTheme";
 import { CourseMap } from "./components/CourseMap";
 import { ChatPanel } from "./components/ChatPanel";
+import { useStepReveal } from "./hooks/useStepReveal";
 import { getDateConfig, planDateStream } from "./api/client";
-import type { ChatMessage, DateStep, MapPlace } from "./types";
+import type { ChatMessage, DatePlanResult, MapPlace } from "./types";
 
 export default function DateApp() {
   const { theme, toggle } = useTheme();
@@ -14,8 +15,11 @@ export default function DateApp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [places, setPlaces] = useState<MapPlace[]>([]);
-  // 실행 중에만 쓰는 진행 상황. 끝나면 결과(result.steps)로 옮겨가 메시지에 남는다.
-  const [liveSteps, setLiveSteps] = useState<DateStep[]>([]);
+  // 실행 중 진행 상황. 도착한 step 을 한 줄씩 풀어 보여준다(끝나면 메시지의 result.steps 로 남는다).
+  const reveal = useStepReveal();
+  // 결과가 먼저 도착해도 진행 상황을 다 보여준 뒤에 답을 띄운다.
+  const [pending, setPending] = useState<DatePlanResult | null>(null);
+  const [typingId, setTypingId] = useState(0); // 이 id 의 답변만 타이핑 연출 (과거 메시지는 즉시)
   const idRef = useRef(0);
 
   // 네이버 지도 Client ID 를 백엔드에서 받아온다
@@ -25,22 +29,31 @@ export default function DateApp() {
       .catch((e) => setError(String(e)));
   }, []);
 
+  // 진행 상황을 다 푼 뒤(idle) 답변을 붙인다 → 과정 → 답 순서가 끊기지 않는다.
+  useEffect(() => {
+    if (!pending || !reveal.idle) return;
+    const id = (idRef.current += 1);
+    setMessages((prev) => [...prev, { id, role: "assistant", result: pending }]);
+    setPlaces(pending.places); // 지도는 가장 최근 추천의 장소로 갱신
+    setTypingId(id);
+    setPending(null);
+    setLoading(false);
+    reveal.reset();
+  }, [pending, reveal.idle, reveal.reset]);
+
   const onSend = (text: string) => {
     setMessages((prev) => [...prev, { id: (idRef.current += 1), role: "user", text }]);
     setLoading(true);
     setError(null);
-    setLiveSteps([]);
+    reveal.reset();
     planDateStream(text, (e) => {
-      if (e.type === "step") setLiveSteps((prev) => [...prev, e.step]);
+      if (e.type === "step") reveal.push(e.step);
     })
-      .then((result) => {
-        setMessages((prev) => [...prev, { id: (idRef.current += 1), role: "assistant", result }]);
-        setPlaces(result.places); // 지도는 가장 최근 추천의 장소로 갱신
-      })
-      .catch((e) => setError(String(e)))
-      .finally(() => {
+      .then(setPending) // 표시는 위 effect 가 (진행 상황을 다 푼 뒤에) 맡는다
+      .catch((e) => {
+        setError(String(e));
         setLoading(false);
-        setLiveSteps([]); // 완료된 과정은 방금 추가된 메시지가 result.steps 로 들고 있다
+        reveal.reset();
       });
   };
 
@@ -64,7 +77,13 @@ export default function DateApp() {
           <CourseMap clientId={clientId} places={places} />
         </section>
         <section className="date__chat">
-          <ChatPanel messages={messages} loading={loading} liveSteps={liveSteps} onSend={onSend} />
+          <ChatPanel
+            messages={messages}
+            loading={loading}
+            liveSteps={reveal.steps}
+            typingId={typingId}
+            onSend={onSend}
+          />
         </section>
       </div>
     </div>

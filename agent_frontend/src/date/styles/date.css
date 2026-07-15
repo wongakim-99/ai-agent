@@ -223,6 +223,21 @@
 .cl__head { margin-bottom: var(--space-3); }
 .cl__region { font-weight: 600; font-size: var(--fs-md); margin-bottom: var(--space-1); }
 .cl__summary { margin: 0; font-size: var(--fs-sm); color: var(--text-dim); line-height: 1.5; }
+/* 타이핑 중 커서 — 글자 뒤에 붙어 깜빡인다 */
+.cl__summary--typing::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  animation: cl-caret 1s step-end infinite;
+}
+@keyframes cl-caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
 .cl__list { list-style: none; margin: var(--space-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .cl__item {
   display: flex;
@@ -231,6 +246,20 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-panel);
+}
+/* 요약을 다 친 뒤 코스가 하나씩 (지연은 인라인 animation-delay 로 항목마다 다르게) */
+.cl__list--stagger .cl__item {
+  opacity: 0;
+  animation: cl-item-in 0.3s ease-out forwards;
+}
+@keyframes cl-item-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+/* 애니메이션을 끄면 지연 없이 즉시 보이게 (연출 때문에 내용이 안 보이면 안 된다) */
+@media (prefers-reduced-motion: reduce) {
+  .cl__list--stagger .cl__item { opacity: 1; animation: none; }
+  .cl__summary--typing::after { animation: none; }
 }
 .cl__step {
   flex: none;
